@@ -44,6 +44,8 @@ typedef uint32_t pskFields_t;
 #define PSK_RFD_NUM_STARTUP 5
 #define PSK_RFD_SEC_TIMEOUT 2700 // 45 minutes
 
+#define PSK_DNS_TTL_SEC 300 // 5 minutes
+
 typedef enum {
     PSK_RECEIVER_FIELD_CALLSIGN = 0,
     PSK_RECEIVER_FIELD_LOCATOR,
@@ -80,8 +82,8 @@ typedef enum {
      PSK_FIELD_MASK(PSK_SENDER_FIELD_INFO_SRC) | PSK_FIELD_MASK(PSK_SENDER_FIELD_FLOW_START_SECS))
 
 #define PSK_TEMPLATE_KEY_LEN                                                                       \
-    (sizeof(pskFields_t) + (((size_t)PSK_SENDER_FIELD_COUNT > (size_t)PSK_RECEIVER_FIELD_COUNT)                    \
-                                ? (size_t)PSK_SENDER_FIELD_COUNT                                           \
+    (sizeof(pskFields_t) + (((size_t)PSK_SENDER_FIELD_COUNT > (size_t)PSK_RECEIVER_FIELD_COUNT)    \
+                                ? (size_t)PSK_SENDER_FIELD_COUNT                                   \
                                 : (size_t)PSK_RECEIVER_FIELD_COUNT))
 
 static const uint16_t receiverFieldIds[PSK_RECEIVER_FIELD_COUNT] = {
@@ -179,6 +181,8 @@ typedef struct {
     pskTemplates_t templates;
 
     const pskReceiverData_t *currentReceiverData;
+
+    uint64_t lastDNSSync;
 
     void *udpCtx;
 } pskCtx_t;
@@ -1183,6 +1187,21 @@ void psk_templates_reset(pskTemplates_t *templates) {
     templates->nextTemplateId = PSK_INITIAL_TEMPLATE_NUM;
 }
 
+void psk_templates_soft_reset(pskTemplates_t *templates) {
+    if (!templates)
+        return;
+
+    for (size_t i = 0; i < templates->receiverTemplateCount; ++i) {
+        templates->receiverTemplate[i].startupCount = 0;
+        templates->receiverTemplate[i].lastSent = 0;
+    }
+
+    for (size_t i = 0; i < templates->senderTemplateCount; ++i) {
+        templates->senderTemplate[i].startupCount = 0;
+        templates->senderTemplate[i].lastSent = 0;
+    }
+}
+
 pskError_t psk_ctx_init(pskCtx_t *ctx, const char *host, const char *port) {
     ctx->sequenceNum = 0;
     if (!hal_system_random_u32(&ctx->sessionId))
@@ -1192,6 +1211,7 @@ pskError_t psk_ctx_init(pskCtx_t *ctx, const char *host, const char *port) {
     ctx->currentReceiverData = NULL;
     ctx->receiverRfdBuffered = false;
     ctx->senderRfdBuffered = false;
+    ctx->lastDNSSync = 0;
 
     halUdpErr_t udpErr = hal_udp_init(&ctx->udpCtx, host, port);
     if (udpErr != HAL_UDP_ERR_OK)
@@ -1255,6 +1275,9 @@ pskError_t psk_ctx_send_manually(pskCtx_t *ctx) {
     uint64_t currentTime;
     if (!hal_system_time_unix_u64(&currentTime))
         return PSK_ERR_SYSTEM;
+    uint32_t randomId;
+    if (!hal_system_random_u32(&randomId))
+        return PSK_ERR_SYSTEM;
 
     pskError_t rc;
     rc = psk_write_packet_header(&ctx->buf, ctx->buf.len, (uint32_t)currentTime, ctx->sequenceNum,
@@ -1282,6 +1305,29 @@ pskError_t psk_ctx_send_manually(pskCtx_t *ctx) {
     ctx->activeSenderTemplate = NULL;
 
     psk_buf_reset(&ctx->buf);
+
+    if (ctx->sequenceNum == UINT32_MAX) {
+        ctx->sequenceNum = 0;
+        ctx->sessionId = randomId;
+        psk_templates_soft_reset(&ctx->templates);
+    }
+
+    if ((currentTime - ctx->lastDNSSync) >= PSK_DNS_TTL_SEC) {
+
+        halUdpErr_t udpErr = hal_udp_reresolve(ctx->udpCtx);
+
+        if (udpErr != HAL_UDP_ERR_OK && udpErr != HAL_UDP_ERR_OK_HOST_CHANGED)
+            return PSK_ERR_NETWORK;
+
+        ctx->lastDNSSync = currentTime;
+
+        if (udpErr == HAL_UDP_ERR_OK_HOST_CHANGED) {
+            // Host has changed
+            ctx->sequenceNum = 0;
+            ctx->sessionId = randomId;
+            psk_templates_soft_reset(&ctx->templates);
+        }
+    }
 
     return PSK_ERR_OK;
 }
