@@ -349,7 +349,7 @@ static size_t prepc_encode_sender_data(prepcBuf_t *buf, const prepcSenderData_t 
     return written;
 }
 
-bool prepc_append_receiver_data(prepcBuf_t *buf, const prepcReceiverData_t *receiverData,
+prepcError_t prepc_append_receiver_data(prepcBuf_t *buf, const prepcReceiverData_t *receiverData,
                               uint16_t templateId) {
     if (!buf || !receiverData)
         return PREPC_ERR_INVALID_ARGS;
@@ -364,7 +364,7 @@ bool prepc_append_receiver_data(prepcBuf_t *buf, const prepcReceiverData_t *rece
     return PREPC_ERR_OK;
 }
 
-bool prepc_append_sender_data(prepcBuf_t *buf, const prepcSenderData_t *senderData, uint16_t templateId) {
+prepcError_t prepc_append_sender_data(prepcBuf_t *buf, const prepcSenderData_t *senderData, uint16_t templateId) {
     if (!buf || !senderData)
         return PREPC_ERR_INVALID_ARGS;
 
