@@ -46,7 +46,7 @@ int main(void) {
         return -1;
     }
 
-    rc = prepc_ctx_set_receiver(&prepcCtx, &receiverData);
+    rc = prepc_ctx_flush(&prepcCtx, 0);
     if (rc != PREPC_ERR_OK) {
         printf("Error in prepc_ctx_send_manually, %d\n", rc);
         return -1;

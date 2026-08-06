@@ -1095,6 +1095,7 @@ prepcError_t prepc_ctx_init(prepcCtx_t *ctx, const char *host, const char *port)
     ctx->receiverRfdBuffered = false;
     ctx->senderRfdBuffered = false;
     ctx->lastDNSSync = 0;
+    ctx->lastPacketSentTime = 0;
 
     halUdpErr_t udpErr = hal_udp_init(&ctx->udpCtx, host, port);
     if (udpErr != HAL_UDP_ERR_OK)
@@ -1137,6 +1138,7 @@ prepcError_t prepc_ctx_reset(prepcCtx_t *ctx) {
         return PREPC_ERR_SYSTEM;
 
     ctx->sequenceNum = 0;
+    ctx->lastPacketSentTime = 0;
     ctx->activeSenderTemplate = NULL;
     ctx->activeReceiverTemplate = NULL;
     ctx->receiverRfdBuffered = false;
@@ -1172,6 +1174,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
         return PREPC_ERR_NETWORK;
 
     ctx->sequenceNum++;
+    ctx->lastPacketSentTime = currentTime;
 
     if (ctx->receiverRfdBuffered && ctx->activeReceiverTemplate) {
         ctx->activeReceiverTemplate->startupCount++;
@@ -1191,6 +1194,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
 
     if (ctx->sequenceNum == UINT32_MAX) {
         ctx->sequenceNum = 0;
+        ctx->lastPacketSentTime = 0;
         ctx->sessionId = randomId;
         prepc_templates_soft_reset(&ctx->templates);
     }
@@ -1207,6 +1211,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
         if (udpErr == HAL_UDP_ERR_OK_HOST_CHANGED) {
             // Host has changed
             ctx->sequenceNum = 0;
+            ctx->lastPacketSentTime = 0;
             ctx->sessionId = randomId;
             prepc_templates_soft_reset(&ctx->templates);
         }
@@ -1372,4 +1377,21 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
     ctx->activeSenderTemplate = foundTemplate;
 
     return PREPC_ERR_OK;
+}
+
+prepcError_t prepc_ctx_flush(prepcCtx_t *ctx, uint64_t minIntervalSecs) {
+    if (!ctx)
+        return PREPC_ERR_INVALID_ARGS;
+
+    if (!ctx->currentReceiverData)
+        return PREPC_ERR_INVALID_STATE;
+
+    uint64_t currentTime;
+    if (!hal_system_time_unix_u64(&currentTime))
+        return PREPC_ERR_SYSTEM;
+
+    if ((currentTime - ctx->lastPacketSentTime) >= minIntervalSecs)
+        return prepc_ctx_set_receiver(ctx, ctx->currentReceiverData);
+    else
+        return PREPC_ERR_OK;
 }

@@ -122,6 +122,8 @@ typedef struct {
 
     uint64_t lastDNSSync;
 
+    uint64_t lastPacketSentTime;
+
     void *udpCtx;
 } prepcCtx_t;
 
@@ -144,6 +146,8 @@ prepcError_t prepc_ctx_init(prepcCtx_t *ctx, const char *host, const char *port)
 prepcError_t prepc_ctx_set_receiver(prepcCtx_t *ctx, const prepcReceiverData_t *receiverData);
 
 prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *senderData);
+
+prepcError_t prepc_ctx_flush(prepcCtx_t *ctx, uint64_t minIntervalSecs);
 
 void prepc_ctx_free(prepcCtx_t *ctx);
 
