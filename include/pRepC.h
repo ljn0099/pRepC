@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define PREPC_DEFAULT_HOST "report.prepcreporter.info"
+#define PREPC_DEFAULT_HOST "report.pskreporter.info"
 #define PREPC_DEFAULT_PORT "4739"
 #define PREPC_TEST_PORT "14739"
 
