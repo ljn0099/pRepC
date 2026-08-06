@@ -1269,7 +1269,7 @@ prepcError_t prepc_ctx_set_receiver(prepcCtx_t *ctx, const prepcReceiverData_t *
         }
     }
 
-    if (foundTemplate->startupCount <= PREPC_RFD_NUM_STARTUP ||
+    if (foundTemplate->startupCount <= (PREPC_RFD_NUM_STARTUP - 1) ||
         (currentTime - foundTemplate->lastSent) >= PREPC_RFD_SEC_TIMEOUT) {
 
         rc = prepc_append_receiver_rfd(&ctx->buf, receiverData, foundTemplate->templateId);
@@ -1278,6 +1278,7 @@ prepcError_t prepc_ctx_set_receiver(prepcCtx_t *ctx, const prepcReceiverData_t *
             prepc_buf_reset(&ctx->buf);
             return rc;
         }
+        ctx->receiverRfdBuffered = true;
     }
 
     rc = prepc_append_receiver_data(&ctx->buf, receiverData, foundTemplate->templateId);
@@ -1352,12 +1353,14 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
         return rc;
 
     size_t rollbackLen = ctx->buf.len;
-    if (foundTemplate->startupCount <= PREPC_RFD_NUM_STARTUP ||
+    if (foundTemplate->startupCount <= (PREPC_RFD_NUM_STARTUP - 1) ||
         (currentTime - foundTemplate->lastSent) >= PREPC_RFD_SEC_TIMEOUT) {
 
         rc = prepc_append_sender_rfd(&ctx->buf, senderData, foundTemplate->templateId);
         if (rc != PREPC_ERR_OK)
             return rc;
+
+        ctx->senderRfdBuffered = true;
     }
 
     rc = prepc_append_sender_data(&ctx->buf, senderData, foundTemplate->templateId);
