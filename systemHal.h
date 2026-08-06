@@ -1,8 +1,8 @@
 #ifndef PSK_SYSTEM_HAL_H
 #define PSK_SYSTEM_HAL_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 bool hal_system_random_u32(uint32_t *value);
 

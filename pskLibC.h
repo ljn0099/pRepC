@@ -66,7 +66,8 @@ typedef enum {
 // pskError_t psk_sender_data_set_info_src(pskSenderData_t *senderData, pskInfoSrc_t infoSrc,
 //                                         bool testTransmission);
 
-// pskError_t psk_sender_data_set_flow_start_secs(pskSenderData_t *senderData, uint64_t flowStartSecs);
+// pskError_t psk_sender_data_set_flow_start_secs(pskSenderData_t *senderData, uint64_t
+// flowStartSecs);
 
 // pskError_t psk_sender_data_set_message_bits(pskSenderData_t *senderData, const uint8_t *bytes,
 //                                             size_t len);
