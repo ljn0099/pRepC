@@ -4,7 +4,7 @@
 #include <string.h>
 #include <time.h>
 
-int main() {
+int main(void) {
     pskReceiverData_t receiverData = {0};
     const char *receiverCallsign = "EA4IGV";
     const char *receiverLocator = "IN80";
