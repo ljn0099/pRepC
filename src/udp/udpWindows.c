@@ -10,7 +10,7 @@
 
 #include <windows.h>
 
-#include "../udpHal.h"
+#include "udpHal.h"
 
 typedef struct {
     SOCKET sock;

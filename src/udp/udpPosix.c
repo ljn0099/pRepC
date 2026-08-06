@@ -12,7 +12,7 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "../udpHal.h"
+#include "udpHal.h"
 
 typedef struct {
     int sock;

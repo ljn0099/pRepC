@@ -1,9 +1,8 @@
 #include "binio.h"
-#include "modes.h"
 #include "pskLibC.h"
-#include "systemHal.h"
+#include "system/systemHal.h"
 #include "time.h"
-#include "udpHal.h"
+#include "udp/udpHal.h"
 #include <ctype.h>
 #include <math.h>
 #include <stdint.h>
@@ -29,12 +28,7 @@
 
 #define PSK_DATA_HEADER_LEN 2
 
-typedef uint32_t pskFields_t;
-
 #define PSK_FIELD_MASK(field) ((pskFields_t)1u << (field))
-
-#define PSK_MAX_SENDER_TEMPLATES 15
-#define PSK_MAX_RECEIVER_TEMPLATES 15
 
 #define PSK_INITIAL_TEMPLATE_NUM 256
 #define PSK_FINAL_TEMPLATE_NUM 65535
@@ -46,33 +40,6 @@ typedef uint32_t pskFields_t;
 
 #define PSK_DNS_TTL_SEC 300 // 5 minutes
 
-typedef enum {
-    PSK_RECEIVER_FIELD_CALLSIGN = 0,
-    PSK_RECEIVER_FIELD_LOCATOR,
-    PSK_RECEIVER_FIELD_DECODER_SOFTWARE,
-    PSK_RECEIVER_FIELD_ANTENNA_INFO,
-    PSK_RECEIVER_FIELD_PERSISTENT_ID,
-    PSK_RECEIVER_FIELD_RIG_INFO,
-
-    PSK_RECEIVER_FIELD_COUNT
-} pskReceiverField_t;
-
-typedef enum {
-    PSK_SENDER_FIELD_CALLSIGN = 0,
-    PSK_SENDER_FIELD_LOCATOR,
-    PSK_SENDER_FIELD_FREQUENCY,
-    PSK_SENDER_FIELD_SNR,
-    PSK_SENDER_FIELD_IMD,
-    PSK_SENDER_FIELD_MODE,
-    PSK_SENDER_FIELD_INFO_SRC,
-    PSK_SENDER_FIELD_FLOW_START_SECS,
-    PSK_SENDER_FIELD_MESSAGE_BITS,
-    PSK_SENDER_FIELD_DELTA_TIME,
-    PSK_SENDER_FIELD_FRACTIONAL_FREQUENCY,
-
-    PSK_SENDER_FIELD_COUNT
-} pskSenderField_t;
-
 #define PSK_RECEIVER_MANDATORY_FIELDS_MASK                                                         \
     (PSK_FIELD_MASK(PSK_RECEIVER_FIELD_CALLSIGN) | PSK_FIELD_MASK(PSK_RECEIVER_FIELD_LOCATOR) |    \
      PSK_FIELD_MASK(PSK_RECEIVER_FIELD_DECODER_SOFTWARE))
@@ -80,11 +47,6 @@ typedef enum {
 #define PSK_SENDER_MANDATORY_FIELDS_MASK                                                           \
     (PSK_FIELD_MASK(PSK_SENDER_FIELD_CALLSIGN) | PSK_FIELD_MASK(PSK_SENDER_FIELD_MODE) |           \
      PSK_FIELD_MASK(PSK_SENDER_FIELD_INFO_SRC) | PSK_FIELD_MASK(PSK_SENDER_FIELD_FLOW_START_SECS))
-
-#define PSK_TEMPLATE_KEY_LEN                                                                       \
-    (sizeof(pskFields_t) + (((size_t)PSK_SENDER_FIELD_COUNT > (size_t)PSK_RECEIVER_FIELD_COUNT)    \
-                                ? (size_t)PSK_SENDER_FIELD_COUNT                                   \
-                                : (size_t)PSK_RECEIVER_FIELD_COUNT))
 
 static const uint16_t receiverFieldIds[PSK_RECEIVER_FIELD_COUNT] = {
     [PSK_RECEIVER_FIELD_CALLSIGN] = 0x8002,         [PSK_RECEIVER_FIELD_LOCATOR] = 0x8004,
@@ -106,86 +68,7 @@ static const uint16_t senderFieldIds[PSK_SENDER_FIELD_COUNT] = {
     [PSK_SENDER_FIELD_FRACTIONAL_FREQUENCY] = 0x8010,
 };
 
-typedef enum {
-    PSK_INFO_SRC_AUTO = 1,
-    PSK_INFO_SRC_CALL_LOG = 2,
-    PSK_INFO_SRC_MANUAL = 3,
-} pskInfoSrc_t;
-
 #define PSK_INFO_SRC_TEST_MASK 0x80
-
-typedef struct {
-    pskFields_t fields;
-    uint8_t lengths[PSK_RECEIVER_FIELD_COUNT];
-
-    const char *callsign;
-    const char *locator;
-    const char *decoderSoftware;
-    const char *antennaInfo;
-    const char *persistentId;
-    const char *rigInfo;
-} pskReceiverData_t;
-
-typedef struct {
-    pskFields_t fields;
-    uint8_t lengths[PSK_SENDER_FIELD_COUNT];
-
-    const char *callsign;
-    const char *locator;
-    uint64_t frequency;
-    int64_t snr;
-    int64_t imd;
-    const char *mode;
-    uint64_t infoSrc;
-    uint64_t flowStartSecs;
-    const uint8_t *messageBits;
-    int64_t deltaTime;
-    uint64_t fractionalFrequency;
-} pskSenderData_t;
-
-typedef struct {
-    uint8_t key[PSK_TEMPLATE_KEY_LEN];
-    uint16_t templateId;
-    uint8_t startupCount;
-    uint64_t lastSent;
-} pskTemplate_t;
-
-typedef struct {
-    pskTemplate_t receiverTemplate[PSK_MAX_RECEIVER_TEMPLATES];
-    size_t receiverTemplateCount;
-    size_t receiverTemplateMax;
-
-    pskTemplate_t senderTemplate[PSK_MAX_SENDER_TEMPLATES];
-    size_t senderTemplateCount;
-    size_t senderTemplateMax;
-
-    uint16_t nextTemplateId;
-} pskTemplates_t;
-
-typedef struct {
-    uint8_t *data;
-    size_t len;
-    size_t maxLen;
-} pskBuf_t;
-
-typedef struct {
-    uint32_t sequenceNum;
-    uint32_t sessionId;
-
-    pskTemplate_t *activeReceiverTemplate;
-    pskTemplate_t *activeSenderTemplate;
-    bool receiverRfdBuffered;
-    bool senderRfdBuffered;
-
-    pskBuf_t buf;
-    pskTemplates_t templates;
-
-    const pskReceiverData_t *currentReceiverData;
-
-    uint64_t lastDNSSync;
-
-    void *udpCtx;
-} pskCtx_t;
 
 typedef enum { PSK_SET_SENDER = 0, PSK_SET_RECEIVER } pskSetType_t;
 
@@ -1130,7 +1013,7 @@ pskError_t psk_templates_add(pskTemplates_t *templates, pskSetType_t setType, co
         templateMax = templates->senderTemplateMax;
     }
 
-    if (templates->nextTemplateId > PSK_FINAL_TEMPLATE_NUM)
+    if (templates->nextTemplateId >= PSK_FINAL_TEMPLATE_NUM)
         return PSK_ERR_TEMPLATES_FULL;
 
     if (*templateCount >= templateMax)
@@ -1486,55 +1369,4 @@ pskError_t psk_ctx_add_sender(pskCtx_t *ctx, const pskSenderData_t *senderData) 
     ctx->activeSenderTemplate = foundTemplate;
 
     return PSK_ERR_OK;
-}
-
-int main() {
-    pskReceiverData_t receiverData = {0};
-    const char *receiverCallsign = "EA4IGV";
-    const char *receiverLocator = "IN80";
-    const char *decoderSoftware = "pskLibC";
-
-    psk_receiver_data_set_callsign(&receiverData, receiverCallsign, strlen(receiverCallsign));
-    psk_receiver_data_set_locator(&receiverData, receiverLocator, strlen(receiverLocator));
-    psk_receiver_data_set_decoder_software(&receiverData, decoderSoftware, strlen(decoderSoftware));
-
-    pskSenderData_t senderData = {0};
-    const char *senderCallsign = "EA1ZXZ";
-    const char *senderMode = PSK_MODE_FT4;
-
-    psk_sender_data_set_callsign(&senderData, senderCallsign, strlen(senderCallsign));
-    psk_sender_data_set_frequency(&senderData, 7145000);
-    psk_sender_data_set_mode(&senderData, senderMode, strlen(senderMode));
-    psk_sender_data_set_info_src(&senderData, PSK_INFO_SRC_MANUAL, true);
-    psk_sender_data_set_flow_start_secs(&senderData, time(NULL));
-    psk_sender_data_set_snr(&senderData, -5);
-
-    pskCtx_t pskCtx;
-    pskError_t rc;
-
-    rc = psk_ctx_init(&pskCtx, PSK_DEFAULT_HOST, PSK_TEST_PORT);
-    if (rc != PSK_ERR_OK) {
-        printf("Error in psk_ctx_init, %d\n", rc);
-        return -1;
-    }
-
-    rc = psk_ctx_set_receiver(&pskCtx, &receiverData);
-    if (rc != PSK_ERR_OK) {
-        printf("Error in psk_ctx_set_receiver, %d\n", rc);
-        return -1;
-    }
-
-    rc = psk_ctx_add_sender(&pskCtx, &senderData);
-    if (rc != PSK_ERR_OK) {
-        printf("Error in psk_ctx_add_sender, %d\n", rc);
-        return -1;
-    }
-
-    rc = psk_ctx_send_manually(&pskCtx);
-    if (rc != PSK_ERR_OK) {
-        printf("Error in psk_ctx_send_manually, %d\n", rc);
-        return -1;
-    }
-
-    psk_ctx_free(&pskCtx);
 }
