@@ -145,8 +145,6 @@ prepcError_t prepc_ctx_set_receiver(prepcCtx_t *ctx, const prepcReceiverData_t *
 
 prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *senderData);
 
-prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx);
-
 void prepc_ctx_free(prepcCtx_t *ctx);
 
 prepcError_t prepc_receiver_data_set_callsign(prepcReceiverData_t *receiverData,
