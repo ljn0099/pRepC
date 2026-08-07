@@ -172,6 +172,8 @@ prepcError_t prepc_receiver_data_set_persistent_id(prepcReceiverData_t *receiver
 prepcError_t prepc_receiver_data_set_rig_info(prepcReceiverData_t *receiverData,
                                               const char *rigInfo, size_t len);
 
+void prepc_receiver_data_reset(prepcReceiverData_t *receiverData);
+
 // Sender Data
 prepcError_t prepc_sender_data_set_callsign(prepcSenderData_t *senderData, const char *callsign,
                                             size_t len);
@@ -204,5 +206,7 @@ prepcError_t prepc_sender_data_set_fractional_frequency_8(prepcSenderData_t *sen
 
 prepcError_t prepc_sender_data_set_fractional_frequency_16(prepcSenderData_t *senderData,
                                                            double fractionalFrequency);
+
+void prepc_sender_data_reset(prepcSenderData_t *senderData);
 
 #endif

@@ -839,6 +839,13 @@ prepcError_t prepc_receiver_data_set_rig_info(prepcReceiverData_t *receiverData,
     return PREPC_ERR_OK;
 }
 
+void prepc_receiver_data_reset(prepcReceiverData_t *receiverData) {
+    if (!receiverData)
+        return;
+
+    memset(receiverData, 0, sizeof(*receiverData));
+}
+
 prepcError_t prepc_sender_data_set_callsign(prepcSenderData_t *senderData, const char *callsign,
                                             size_t len) {
     if (!senderData || !callsign)
@@ -993,6 +1000,13 @@ prepcError_t prepc_sender_data_set_fractional_frequency_16(prepcSenderData_t *se
                           true);
 
     return PREPC_ERR_OK;
+}
+
+void prepc_sender_data_reset(prepcSenderData_t *senderData) {
+    if (!senderData)
+        return;
+
+    memset(senderData, 0, sizeof(*senderData));
 }
 
 prepcError_t prepc_templates_init(prepcTemplates_t *templates) {
