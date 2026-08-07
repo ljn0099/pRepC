@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -182,7 +181,6 @@ halUdpErr_t hal_udp_send_vector(void *context, const halUdpBuf_t *buffers, size_
     if ((size_t)sent != total)
         return HAL_UDP_ERR_INTERNAL;
 
-    printf("Sent %zd bytes\n", sent);
     return HAL_UDP_ERR_OK;
 }
 
