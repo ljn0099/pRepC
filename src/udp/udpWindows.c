@@ -83,7 +83,7 @@ static halUdpErr_t udp_reopen(connContext_t *ctx) {
             continue;
 
         memcpy(&ctx->addr, p->ai_addr, p->ai_addrlen);
-        ctx->addrlen = p->ai_addrlen;
+        ctx->addrlen = (int)p->ai_addrlen;
 
         if (ctx->sock != INVALID_SOCKET)
             closesocket(ctx->sock);

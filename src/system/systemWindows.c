@@ -5,8 +5,6 @@
 
 #include <bcrypt.h>
 
-#pragma comment(lib, "bcrypt.lib")
-
 #define WINDOWS_TICK 10000000ULL
 #define SEC_TO_UNIX_EPOCH 11644473600ULL
 

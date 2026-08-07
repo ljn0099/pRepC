@@ -7,10 +7,19 @@ if(WIN32)
         system/systemWindows.c
         udp/udpWindows.c
     )
+
+    set(PLATFORM_LIBS
+        ws2_32
+        bcrypt
+    )
 elseif(UNIX)
     target_sources(pRepC PRIVATE
         system/systemPosix.c
         udp/udpPosix.c
+    )
+
+    set(PLATFORM_LIBS
+        m
     )
 else()
     message(FATAL_ERROR "Unsupported platform")
@@ -25,6 +34,6 @@ target_include_directories(pRepC
 
 target_link_libraries(pRepC
     PRIVATE
-        m
+        ${PLATFORM_LIBS}
         binio
 )
