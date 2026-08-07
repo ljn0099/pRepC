@@ -33,8 +33,6 @@
 #define PREPC_INITIAL_TEMPLATE_NUM 256
 #define PREPC_FINAL_TEMPLATE_NUM 65535
 
-#define PREPC_PACKET_LEN 1400
-
 #define PREPC_RFD_NUM_STARTUP 5
 #define PREPC_RFD_SEC_TIMEOUT 2700 // 45 minutes
 
@@ -647,25 +645,15 @@ prepcError_t prepc_write_packet_header(prepcBuf_t *buf, size_t datagramLen, uint
     return PREPC_ERR_OK;
 }
 
-prepcError_t prepc_buf_init(prepcBuf_t *buf, size_t bufLen) {
-    buf->data = malloc(bufLen);
-    if (!buf->data)
-        return PREPC_ERR_MEMORY;
-
+prepcError_t prepc_buf_init(prepcBuf_t *buf) {
     buf->len = 0;
-    buf->maxLen = bufLen;
+    buf->maxLen = PREPC_PACKET_LEN;
 
     return PREPC_ERR_OK;
 }
 
 void prepc_buf_reset(prepcBuf_t *buf) {
     buf->len = 0;
-}
-
-void prepc_buf_free(prepcBuf_t *buf) {
-    free(buf->data);
-    buf->len = 0;
-    buf->maxLen = 0;
 }
 
 static inline void prepc_set_str(uint32_t *fields, uint8_t *lengths, unsigned field, const char **dst,
@@ -1103,13 +1091,12 @@ prepcError_t prepc_ctx_init(prepcCtx_t *ctx, const char *host, const char *port)
 
     prepcError_t rc;
 
-    rc = prepc_buf_init(&ctx->buf, PREPC_PACKET_LEN);
+    rc = prepc_buf_init(&ctx->buf);
     if (rc != PREPC_ERR_OK)
         return rc;
 
     rc = prepc_templates_init(&ctx->templates);
     if (rc != PREPC_ERR_OK) {
-        prepc_buf_free(&ctx->buf);
         return rc;
     }
 
@@ -1124,8 +1111,6 @@ void prepc_ctx_free(prepcCtx_t *ctx) {
     ctx->currentReceiverData = NULL;
     ctx->receiverRfdBuffered = false;
     ctx->senderRfdBuffered = false;
-
-    prepc_buf_free(&ctx->buf);
 
     hal_udp_cleanup(ctx->udpCtx);
 }

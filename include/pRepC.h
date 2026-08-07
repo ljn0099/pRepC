@@ -9,6 +9,8 @@
 #define PREPC_DEFAULT_PORT "4739"
 #define PREPC_TEST_PORT "14739"
 
+#define PREPC_PACKET_LEN 1400
+
 typedef enum {
     PREPC_RECEIVER_FIELD_CALLSIGN = 0,
     PREPC_RECEIVER_FIELD_LOCATOR,
@@ -101,7 +103,7 @@ typedef struct {
 } prepcTemplates_t;
 
 typedef struct {
-    uint8_t *data;
+    uint8_t data[PREPC_PACKET_LEN];
     size_t len;
     size_t maxLen;
 } prepcBuf_t;
