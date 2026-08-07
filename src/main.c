@@ -74,15 +74,16 @@ typedef enum { PREPC_SET_SENDER = 0, PREPC_SET_RECEIVER } prepcSetType_t;
 
 #ifdef DEBUG
 
-#define DEBUG_printf(fmt, ...) \
-    do { \
-        printf("[DEBUG][TESTLIB][%s] " fmt "\n", __func__, ##__VA_ARGS__); \
+#define DEBUG_printf(fmt, ...)                                                                     \
+    do {                                                                                           \
+        printf("[DEBUG][TESTLIB][%s] " fmt "\n", __func__, ##__VA_ARGS__);                         \
     } while (0)
 
 #else
 
-#define DEBUG_printf(...) \
-    do { } while (0)
+#define DEBUG_printf(...)                                                                          \
+    do {                                                                                           \
+    } while (0)
 #endif
 
 bool check_locator(const char *locator, size_t len) {
@@ -1403,7 +1404,8 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
     return PREPC_ERR_OK;
 }
 
-prepcError_t prepc_ctx_flush(prepcCtx_t *ctx, uint64_t minIntervalSecs) {
+prepcError_t prepc_ctx_flush(prepcCtx_t *ctx, uint64_t minIntervalSecs,
+                             bool allowReceiverDataOnly) {
     if (!ctx)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -1414,8 +1416,18 @@ prepcError_t prepc_ctx_flush(prepcCtx_t *ctx, uint64_t minIntervalSecs) {
     if (!hal_system_time_unix_u64(&currentTime))
         return PREPC_ERR_SYSTEM;
 
-    if ((currentTime - ctx->lastPacketSentTime) >= minIntervalSecs)
+    if ((currentTime - ctx->lastPacketSentTime) >= minIntervalSecs) {
+        if (allowReceiverDataOnly) {
+            prepcError_t rc;
+
+            rc = prepc_ctx_send_manually(ctx);
+
+            if (rc != PREPC_ERR_OK)
+                return rc;
+        }
         return prepc_ctx_set_receiver(ctx, ctx->currentReceiverData);
-    else
+    }
+    else {
         return PREPC_ERR_OK;
+    }
 }
