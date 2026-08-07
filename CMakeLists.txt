@@ -19,4 +19,8 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 add_subdirectory(src)
+
+option(BINIO_BUILD_TESTS OFF)
+add_subdirectory(external/binio)
+
 add_subdirectory(examples)

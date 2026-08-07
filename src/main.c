@@ -128,7 +128,7 @@ static inline size_t prepc_append_padding(prepcBuf_t *buf, size_t written) {
         (PREPC_PADDING_DIVISOR - (written % PREPC_PADDING_DIVISOR)) % PREPC_PADDING_DIVISOR;
 
     if (buf)
-        buf->len += binio_skip_zero(buf->data + buf->len, paddingBytes);
+        buf->len += binio_pad_bytes(buf->data + buf->len, 0x00, paddingBytes);
 
     return paddingBytes;
 }
@@ -166,7 +166,7 @@ static inline size_t prepc_append_var_uint(prepcBuf_t *buf, uint64_t value, size
         nBytes = sizeof(uint64_t);
 
     if (buf)
-        buf->len += binio_write_u64_lsb_be(buf->data + buf->len, value, nBytes);
+        buf->len += binio_write_u64_trunc_be(buf->data + buf->len, value, nBytes);
 
     return nBytes;
 }
@@ -176,7 +176,7 @@ static inline size_t prepc_append_var_int(prepcBuf_t *buf, int64_t value, size_t
         nBytes = sizeof(int64_t);
 
     if (buf)
-        buf->len += binio_write_i64_lsb_be(buf->data + buf->len, value, nBytes);
+        buf->len += binio_write_i64_trunc_be(buf->data + buf->len, value, nBytes);
 
     return nBytes;
 }
@@ -410,7 +410,7 @@ static size_t prepc_encode_receiver_rfd(prepcBuf_t *buf, const prepcReceiverData
     uint8_t *keyP = NULL;
     if (rfdKey) {
         keyP = rfdKey;
-        binio_skip_zero(keyP, PREPC_TEMPLATE_KEY_LEN);
+        binio_pad_bytes(keyP, 0x00, PREPC_TEMPLATE_KEY_LEN);
 
         keyP +=
             binio_write_bytes(keyP, (uint8_t *)&receiverData->fields, sizeof(receiverData->fields));
@@ -471,7 +471,7 @@ static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *
     uint8_t *keyP = NULL;
     if (rfdKey) {
         keyP = rfdKey;
-        binio_skip_zero(keyP, PREPC_TEMPLATE_KEY_LEN);
+        binio_pad_bytes(keyP, 0x00, PREPC_TEMPLATE_KEY_LEN);
 
         keyP += binio_write_bytes(keyP, (uint8_t *)&senderData->fields, sizeof(senderData->fields));
     }

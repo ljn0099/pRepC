@@ -1,0 +1,3 @@
+[submodule "external/binio"]
+	path = external/binio
+	url = https://github.com/ljn0099/binio.git

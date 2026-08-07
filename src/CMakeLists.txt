@@ -21,10 +21,10 @@ target_include_directories(pRepC
         ${PROJECT_SOURCE_DIR}/include
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/private
 )
 
 target_link_libraries(pRepC
     PRIVATE
         m
+        binio
 )
