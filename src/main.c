@@ -72,6 +72,19 @@ static const uint16_t senderFieldIds[PREPC_SENDER_FIELD_COUNT] = {
 
 typedef enum { PREPC_SET_SENDER = 0, PREPC_SET_RECEIVER } prepcSetType_t;
 
+#ifdef DEBUG
+
+#define DEBUG_printf(fmt, ...) \
+    do { \
+        printf("[DEBUG][TESTLIB][%s] " fmt "\n", __func__, ##__VA_ARGS__); \
+    } while (0)
+
+#else
+
+#define DEBUG_printf(...) \
+    do { } while (0)
+#endif
+
 bool check_locator(const char *locator, size_t len) {
     // Must be 4, 6, or 8 characters
     if (len != 4 && len != 6 && len != 8)
@@ -1168,6 +1181,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
 
     if (hal_udp_send(ctx->udpCtx, ctx->buf.data, ctx->buf.len) != HAL_UDP_ERR_OK)
         return PREPC_ERR_NETWORK;
+    DEBUG_printf("Buffer sent, %zu bytes", ctx->buf.len);
 
     ctx->sequenceNum++;
     ctx->lastPacketSentTime = currentTime;
@@ -1175,6 +1189,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
     if (ctx->receiverRfdBuffered && ctx->activeReceiverTemplate) {
         ctx->activeReceiverTemplate->startupCount++;
         ctx->activeReceiverTemplate->lastSent = currentTime;
+        DEBUG_printf("Receiver RFD in the buffer, incrementing startupCount");
     }
     ctx->receiverRfdBuffered = false;
     ctx->activeReceiverTemplate = NULL;
@@ -1182,6 +1197,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
     if (ctx->senderRfdBuffered && ctx->activeSenderTemplate) {
         ctx->activeSenderTemplate->startupCount++;
         ctx->activeSenderTemplate->lastSent = currentTime;
+        DEBUG_printf("Sender RFD in the buffer, incrementing startupCount");
     }
     ctx->senderRfdBuffered = false;
     ctx->activeSenderTemplate = NULL;
@@ -1193,6 +1209,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
         ctx->lastPacketSentTime = 0;
         ctx->sessionId = randomId;
         prepc_templates_soft_reset(&ctx->templates);
+        DEBUG_printf("SequenceNum overflow detected, reseting context");
     }
 
     if ((currentTime - ctx->lastDNSSync) >= PREPC_DNS_TTL_SEC) {
@@ -1210,6 +1227,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
             ctx->lastPacketSentTime = 0;
             ctx->sessionId = randomId;
             prepc_templates_soft_reset(&ctx->templates);
+            DEBUG_printf("Host IP changed, reseting context");
         }
     }
 
@@ -1227,6 +1245,7 @@ prepcError_t prepc_ctx_set_receiver(prepcCtx_t *ctx, const prepcReceiverData_t *
     prepcError_t rc;
 
     if (ctx->activeSenderTemplate) {
+        DEBUG_printf("activeSenderTemplate in the buffer, sending it first");
         rc = prepc_ctx_send_manually(ctx);
         if (rc != PREPC_ERR_OK)
             return rc;
@@ -1260,8 +1279,10 @@ prepcError_t prepc_ctx_set_receiver(prepcCtx_t *ctx, const prepcReceiverData_t *
         rc = prepc_templates_add(&ctx->templates, PREPC_SET_RECEIVER, rfdKey, &foundTemplate);
         if (rc != PREPC_ERR_OK && rc != PREPC_ERR_TEMPLATES_FULL)
             return rc;
+        DEBUG_printf("template not found, trying to add it");
 
         if (rc == PREPC_ERR_TEMPLATES_FULL) {
+            DEBUG_printf("templates cache full, trying to reset the context");
             rc = prepc_ctx_reset(ctx);
             if (rc != PREPC_ERR_OK)
                 return rc;
@@ -1323,14 +1344,18 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
         return rc;
 
     if (rc == PREPC_ERR_TEMPLATE_NOT_FOUND) {
+        DEBUG_printf("template not found, trying to add it");
         rc = prepc_templates_add(&ctx->templates, PREPC_SET_SENDER, rfdKey, &foundTemplate);
         if (rc != PREPC_ERR_OK && rc != PREPC_ERR_TEMPLATES_FULL)
             return rc;
 
         if (rc == PREPC_ERR_TEMPLATES_FULL) {
-            rc = prepc_ctx_send_manually(ctx);
-            if (rc != PREPC_ERR_OK)
-                return rc;
+            DEBUG_printf("templates cache full, trying to reset the context");
+            if (ctx->activeSenderTemplate) {
+                rc = prepc_ctx_send_manually(ctx);
+                if (rc != PREPC_ERR_OK)
+                    return rc;
+            }
 
             rc = prepc_ctx_reset(ctx);
             if (rc != PREPC_ERR_OK)
@@ -1350,6 +1375,7 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
             return rc;
     }
 
+    DEBUG_printf("new senderData doesn't fit, sending the buffer");
     rc = prepc_ctx_set_receiver(ctx, ctx->currentReceiverData);
     if (rc != PREPC_ERR_OK)
         return rc;
@@ -1365,6 +1391,7 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
         ctx->senderRfdBuffered = true;
     }
 
+    DEBUG_printf("adding senderData to the new buffer");
     rc = prepc_append_sender_data(&ctx->buf, senderData, foundTemplate->templateId);
     if (rc != PREPC_ERR_OK) {
         ctx->buf.len = rollbackLen;
