@@ -38,13 +38,15 @@
 
 #define PREPC_DNS_TTL_SEC 300 // 5 minutes
 
-#define PREPC_RECEIVER_MANDATORY_FIELDS_MASK                                                         \
-    (PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_CALLSIGN) | PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_LOCATOR) |    \
+#define PREPC_RECEIVER_MANDATORY_FIELDS_MASK                                                       \
+    (PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_CALLSIGN) |                                             \
+     PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_LOCATOR) |                                              \
      PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_DECODER_SOFTWARE))
 
-#define PREPC_SENDER_MANDATORY_FIELDS_MASK                                                           \
-    (PREPC_FIELD_MASK(PREPC_SENDER_FIELD_CALLSIGN) | PREPC_FIELD_MASK(PREPC_SENDER_FIELD_MODE) |           \
-     PREPC_FIELD_MASK(PREPC_SENDER_FIELD_INFO_SRC) | PREPC_FIELD_MASK(PREPC_SENDER_FIELD_FLOW_START_SECS))
+#define PREPC_SENDER_MANDATORY_FIELDS_MASK                                                         \
+    (PREPC_FIELD_MASK(PREPC_SENDER_FIELD_CALLSIGN) | PREPC_FIELD_MASK(PREPC_SENDER_FIELD_MODE) |   \
+     PREPC_FIELD_MASK(PREPC_SENDER_FIELD_INFO_SRC) |                                               \
+     PREPC_FIELD_MASK(PREPC_SENDER_FIELD_FLOW_START_SECS))
 
 static const uint16_t receiverFieldIds[PREPC_RECEIVER_FIELD_COUNT] = {
     [PREPC_RECEIVER_FIELD_CALLSIGN] = 0x8002,         [PREPC_RECEIVER_FIELD_LOCATOR] = 0x8004,
@@ -237,7 +239,7 @@ static inline size_t prepc_append_str(prepcBuf_t *buf, const char *str, size_t s
 }
 
 static size_t prepc_encode_receiver_data(prepcBuf_t *buf, const prepcReceiverData_t *receiverData,
-                                       uint16_t templateId, size_t receiverDataLen) {
+                                         uint16_t templateId, size_t receiverDataLen) {
     size_t written = 0;
 
     // 0. Header
@@ -247,32 +249,32 @@ static size_t prepc_encode_receiver_data(prepcBuf_t *buf, const prepcReceiverDat
     // 1. Callsign
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_CALLSIGN))
         written += prepc_append_str(buf, receiverData->callsign,
-                                  receiverData->lengths[PREPC_RECEIVER_FIELD_CALLSIGN]);
+                                    receiverData->lengths[PREPC_RECEIVER_FIELD_CALLSIGN]);
 
     // 2. Locator
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_LOCATOR))
         written += prepc_append_str(buf, receiverData->locator,
-                                  receiverData->lengths[PREPC_RECEIVER_FIELD_LOCATOR]);
+                                    receiverData->lengths[PREPC_RECEIVER_FIELD_LOCATOR]);
 
     // 3. Decoder Software
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_DECODER_SOFTWARE))
         written += prepc_append_str(buf, receiverData->decoderSoftware,
-                                  receiverData->lengths[PREPC_RECEIVER_FIELD_DECODER_SOFTWARE]);
+                                    receiverData->lengths[PREPC_RECEIVER_FIELD_DECODER_SOFTWARE]);
 
     // 4. Antenna Information
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_ANTENNA_INFO))
         written += prepc_append_str(buf, receiverData->antennaInfo,
-                                  receiverData->lengths[PREPC_RECEIVER_FIELD_ANTENNA_INFO]);
+                                    receiverData->lengths[PREPC_RECEIVER_FIELD_ANTENNA_INFO]);
 
     // 5. Persistend Identifier
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_PERSISTENT_ID))
         written += prepc_append_str(buf, receiverData->persistentId,
-                                  receiverData->lengths[PREPC_RECEIVER_FIELD_PERSISTENT_ID]);
+                                    receiverData->lengths[PREPC_RECEIVER_FIELD_PERSISTENT_ID]);
 
     // 6. Rig Information
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_RIG_INFO))
         written += prepc_append_str(buf, receiverData->rigInfo,
-                                  receiverData->lengths[PREPC_RECEIVER_FIELD_RIG_INFO]);
+                                    receiverData->lengths[PREPC_RECEIVER_FIELD_RIG_INFO]);
 
     written += prepc_append_padding(buf, written);
 
@@ -280,7 +282,7 @@ static size_t prepc_encode_receiver_data(prepcBuf_t *buf, const prepcReceiverDat
 }
 
 static size_t prepc_encode_sender_data(prepcBuf_t *buf, const prepcSenderData_t *senderData,
-                                     uint16_t templateId, size_t senderDataLen) {
+                                       uint16_t templateId, size_t senderDataLen) {
     size_t written = 0;
 
     // 0. Header
@@ -290,17 +292,17 @@ static size_t prepc_encode_sender_data(prepcBuf_t *buf, const prepcSenderData_t 
     // 1. Callsign
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_CALLSIGN))
         written += prepc_append_str(buf, senderData->callsign,
-                                  senderData->lengths[PREPC_SENDER_FIELD_CALLSIGN]);
+                                    senderData->lengths[PREPC_SENDER_FIELD_CALLSIGN]);
 
     // 2. Locator
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_LOCATOR))
-        written +=
-            prepc_append_str(buf, senderData->locator, senderData->lengths[PREPC_SENDER_FIELD_LOCATOR]);
+        written += prepc_append_str(buf, senderData->locator,
+                                    senderData->lengths[PREPC_SENDER_FIELD_LOCATOR]);
 
     // 3. Frequency
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_FREQUENCY))
         written += prepc_append_var_uint(buf, senderData->frequency,
-                                       senderData->lengths[PREPC_SENDER_FIELD_FREQUENCY]);
+                                         senderData->lengths[PREPC_SENDER_FIELD_FREQUENCY]);
 
     // 4. SNR
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_SNR))
@@ -320,27 +322,28 @@ static size_t prepc_encode_sender_data(prepcBuf_t *buf, const prepcSenderData_t 
     // 7. Information Source
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_INFO_SRC))
         written += prepc_append_var_uint(buf, senderData->infoSrc,
-                                       senderData->lengths[PREPC_SENDER_FIELD_INFO_SRC]);
+                                         senderData->lengths[PREPC_SENDER_FIELD_INFO_SRC]);
 
     // 8. Flow Starts Seconds
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_FLOW_START_SECS))
         written += prepc_append_var_uint(buf, senderData->flowStartSecs,
-                                       senderData->lengths[PREPC_SENDER_FIELD_FLOW_START_SECS]);
+                                         senderData->lengths[PREPC_SENDER_FIELD_FLOW_START_SECS]);
 
     // 9. Message Bits
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_MESSAGE_BITS))
         written += prepc_append_bytes(buf, senderData->messageBits,
-                                    senderData->lengths[PREPC_SENDER_FIELD_MESSAGE_BITS]);
+                                      senderData->lengths[PREPC_SENDER_FIELD_MESSAGE_BITS]);
 
     // 10. Delta Time
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_DELTA_TIME))
         written += prepc_append_var_int(buf, senderData->deltaTime,
-                                      senderData->lengths[PREPC_SENDER_FIELD_DELTA_TIME]);
+                                        senderData->lengths[PREPC_SENDER_FIELD_DELTA_TIME]);
 
     // 11. Fractional Frequency
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY))
-        written += prepc_append_var_uint(buf, senderData->fractionalFrequency,
-                                       senderData->lengths[PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY]);
+        written +=
+            prepc_append_var_uint(buf, senderData->fractionalFrequency,
+                                  senderData->lengths[PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY]);
 
     written += prepc_append_padding(buf, written);
 
@@ -348,7 +351,7 @@ static size_t prepc_encode_sender_data(prepcBuf_t *buf, const prepcSenderData_t 
 }
 
 prepcError_t prepc_append_receiver_data(prepcBuf_t *buf, const prepcReceiverData_t *receiverData,
-                              uint16_t templateId) {
+                                        uint16_t templateId) {
     if (!buf || !receiverData)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -362,7 +365,8 @@ prepcError_t prepc_append_receiver_data(prepcBuf_t *buf, const prepcReceiverData
     return PREPC_ERR_OK;
 }
 
-prepcError_t prepc_append_sender_data(prepcBuf_t *buf, const prepcSenderData_t *senderData, uint16_t templateId) {
+prepcError_t prepc_append_sender_data(prepcBuf_t *buf, const prepcSenderData_t *senderData,
+                                      uint16_t templateId) {
     if (!buf || !senderData)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -388,8 +392,8 @@ prepcError_t prepc_append_sender_data(prepcBuf_t *buf, const prepcSenderData_t *
 // Enterprise Field
 // <FieldId:2><FieldLen:2><EnterpriseNum:4>
 
-static inline size_t prepc_append_field_rfd(prepcBuf_t *buf, const uint16_t *fieldIds, unsigned field,
-                                          uint16_t len) {
+static inline size_t prepc_append_field_rfd(prepcBuf_t *buf, const uint16_t *fieldIds,
+                                            unsigned field, uint16_t len) {
     uint16_t id = fieldIds[field];
 
     size_t written = 0;
@@ -404,7 +408,8 @@ static inline size_t prepc_append_field_rfd(prepcBuf_t *buf, const uint16_t *fie
 }
 
 static size_t prepc_encode_receiver_rfd(prepcBuf_t *buf, const prepcReceiverData_t *receiverData,
-                                      uint16_t templateId, size_t receiverRfdLen, uint8_t *rfdKey) {
+                                        uint16_t templateId, size_t receiverRfdLen,
+                                        uint8_t *rfdKey) {
     uint8_t *keyP = NULL;
     if (rfdKey) {
         keyP = rfdKey;
@@ -426,37 +431,37 @@ static size_t prepc_encode_receiver_rfd(prepcBuf_t *buf, const prepcReceiverData
     // 1. Callsign
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_CALLSIGN)) {
         written += prepc_append_field_rfd(buf, receiverFieldIds, PREPC_RECEIVER_FIELD_CALLSIGN,
-                                        PREPC_VARIABLE_STR);
+                                          PREPC_VARIABLE_STR);
     }
 
     // 2. Locator
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_LOCATOR)) {
         written += prepc_append_field_rfd(buf, receiverFieldIds, PREPC_RECEIVER_FIELD_LOCATOR,
-                                        PREPC_VARIABLE_STR);
+                                          PREPC_VARIABLE_STR);
     }
 
     // 3. Decoder Software
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_DECODER_SOFTWARE)) {
-        written += prepc_append_field_rfd(buf, receiverFieldIds, PREPC_RECEIVER_FIELD_DECODER_SOFTWARE,
-                                        PREPC_VARIABLE_STR);
+        written += prepc_append_field_rfd(
+            buf, receiverFieldIds, PREPC_RECEIVER_FIELD_DECODER_SOFTWARE, PREPC_VARIABLE_STR);
     }
 
     // 4. Antenna Info
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_ANTENNA_INFO)) {
         written += prepc_append_field_rfd(buf, receiverFieldIds, PREPC_RECEIVER_FIELD_ANTENNA_INFO,
-                                        PREPC_VARIABLE_STR);
+                                          PREPC_VARIABLE_STR);
     }
 
     // 5. Persistent Identifier
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_PERSISTENT_ID)) {
         written += prepc_append_field_rfd(buf, receiverFieldIds, PREPC_RECEIVER_FIELD_PERSISTENT_ID,
-                                        PREPC_VARIABLE_STR);
+                                          PREPC_VARIABLE_STR);
     }
 
     // 6. Persistent Identifier
     if (receiverData->fields & PREPC_FIELD_MASK(PREPC_RECEIVER_FIELD_RIG_INFO)) {
         written += prepc_append_field_rfd(buf, receiverFieldIds, PREPC_RECEIVER_FIELD_RIG_INFO,
-                                        PREPC_VARIABLE_STR);
+                                          PREPC_VARIABLE_STR);
     }
 
     written += prepc_append_padding(buf, written);
@@ -465,7 +470,7 @@ static size_t prepc_encode_receiver_rfd(prepcBuf_t *buf, const prepcReceiverData
 }
 
 static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *senderData,
-                                    uint16_t templateId, size_t senderRfdLen, uint8_t *rfdKey) {
+                                      uint16_t templateId, size_t senderRfdLen, uint8_t *rfdKey) {
     uint8_t *keyP = NULL;
     if (rfdKey) {
         keyP = rfdKey;
@@ -484,20 +489,20 @@ static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *
 
     // 1. Callsign
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_CALLSIGN)) {
-        written +=
-            prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_CALLSIGN, PREPC_VARIABLE_STR);
+        written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_CALLSIGN,
+                                          PREPC_VARIABLE_STR);
     }
 
     // 2. Locator
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_LOCATOR)) {
-        written +=
-            prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_LOCATOR, PREPC_VARIABLE_STR);
+        written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_LOCATOR,
+                                          PREPC_VARIABLE_STR);
     }
 
     // 3. Frequency
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_FREQUENCY)) {
         written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_FREQUENCY,
-                                        senderData->lengths[PREPC_SENDER_FIELD_FREQUENCY]);
+                                          senderData->lengths[PREPC_SENDER_FIELD_FREQUENCY]);
 
         if (keyP)
             keyP += binio_write_u8(keyP, senderData->lengths[PREPC_SENDER_FIELD_FREQUENCY]);
@@ -506,7 +511,7 @@ static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *
     // 4. SNR
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_SNR)) {
         written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_SNR,
-                                        senderData->lengths[PREPC_SENDER_FIELD_SNR]);
+                                          senderData->lengths[PREPC_SENDER_FIELD_SNR]);
 
         if (keyP)
             keyP += binio_write_u8(keyP, senderData->lengths[PREPC_SENDER_FIELD_SNR]);
@@ -515,7 +520,7 @@ static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *
     // 5. IMD
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_IMD)) {
         written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_IMD,
-                                        senderData->lengths[PREPC_SENDER_FIELD_IMD]);
+                                          senderData->lengths[PREPC_SENDER_FIELD_IMD]);
 
         if (keyP)
             keyP += binio_write_u8(keyP, senderData->lengths[PREPC_SENDER_FIELD_IMD]);
@@ -523,14 +528,14 @@ static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *
 
     // 6. Mode
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_MODE)) {
-        written +=
-            prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_MODE, PREPC_VARIABLE_STR);
+        written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_MODE,
+                                          PREPC_VARIABLE_STR);
     }
 
     // 7. Information Source
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_INFO_SRC)) {
         written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_INFO_SRC,
-                                        senderData->lengths[PREPC_SENDER_FIELD_INFO_SRC]);
+                                          senderData->lengths[PREPC_SENDER_FIELD_INFO_SRC]);
 
         if (keyP)
             keyP += binio_write_u8(keyP, senderData->lengths[PREPC_SENDER_FIELD_INFO_SRC]);
@@ -539,7 +544,7 @@ static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *
     // 8. Flow Start Seconds
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_FLOW_START_SECS)) {
         written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_FLOW_START_SECS,
-                                        senderData->lengths[PREPC_SENDER_FIELD_FLOW_START_SECS]);
+                                          senderData->lengths[PREPC_SENDER_FIELD_FLOW_START_SECS]);
 
         if (keyP)
             keyP += binio_write_u8(keyP, senderData->lengths[PREPC_SENDER_FIELD_FLOW_START_SECS]);
@@ -548,13 +553,13 @@ static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *
     // 9. Message Bits
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_MESSAGE_BITS)) {
         written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_MESSAGE_BITS,
-                                        senderData->lengths[PREPC_SENDER_FIELD_MESSAGE_BITS]);
+                                          senderData->lengths[PREPC_SENDER_FIELD_MESSAGE_BITS]);
     }
 
     // 10. Delta Time
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_DELTA_TIME)) {
         written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_DELTA_TIME,
-                                        senderData->lengths[PREPC_SENDER_FIELD_DELTA_TIME]);
+                                          senderData->lengths[PREPC_SENDER_FIELD_DELTA_TIME]);
 
         if (keyP)
             keyP += binio_write_u8(keyP, senderData->lengths[PREPC_SENDER_FIELD_DELTA_TIME]);
@@ -562,8 +567,9 @@ static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *
 
     // 11. Fractional Frequency
     if (senderData->fields & PREPC_FIELD_MASK(PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY)) {
-        written += prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY,
-                                        senderData->lengths[PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY]);
+        written +=
+            prepc_append_field_rfd(buf, senderFieldIds, PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY,
+                                   senderData->lengths[PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY]);
 
         if (keyP)
             keyP +=
@@ -576,7 +582,7 @@ static size_t prepc_encode_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *
 }
 
 prepcError_t prepc_append_receiver_rfd(prepcBuf_t *buf, const prepcReceiverData_t *receiverData,
-                                   uint16_t templateId) {
+                                       uint16_t templateId) {
     if (!buf || !receiverData)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -591,7 +597,7 @@ prepcError_t prepc_append_receiver_rfd(prepcBuf_t *buf, const prepcReceiverData_
 }
 
 prepcError_t prepc_append_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *senderData,
-                                 uint16_t templateId) {
+                                     uint16_t templateId) {
     if (!buf || !senderData)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -605,7 +611,8 @@ prepcError_t prepc_append_sender_rfd(prepcBuf_t *buf, const prepcSenderData_t *s
     return PREPC_ERR_OK;
 }
 
-prepcError_t prepc_generate_receiver_rfd_key(const prepcReceiverData_t *receiverData, uint8_t *rfdKey) {
+prepcError_t prepc_generate_receiver_rfd_key(const prepcReceiverData_t *receiverData,
+                                             uint8_t *rfdKey) {
     if (!receiverData || !rfdKey)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -624,7 +631,7 @@ prepcError_t prepc_generate_sender_rfd_key(const prepcSenderData_t *senderData, 
 }
 
 prepcError_t prepc_write_packet_header(prepcBuf_t *buf, size_t datagramLen, uint32_t txTimestamp,
-                                   uint32_t sequenceNum, uint32_t sessionId) {
+                                       uint32_t sequenceNum, uint32_t sessionId) {
     // Header Format (16 bytes total)
     // <IpfixVersion:2><DatagramLen:2><TxTimestamp:4><SequenceNum:4><SessionId:4>
 
@@ -656,25 +663,26 @@ void prepc_buf_reset(prepcBuf_t *buf) {
     buf->len = 0;
 }
 
-static inline void prepc_set_str(uint32_t *fields, uint8_t *lengths, unsigned field, const char **dst,
-                               const char *value, size_t len) {
+static inline void prepc_set_str(uint32_t *fields, uint8_t *lengths, unsigned field,
+                                 const char **dst, const char *value, size_t len) {
     *fields |= PREPC_FIELD_MASK(field);
     *dst = value;
     lengths[field] = (uint8_t)len;
 }
 
-static inline void prepc_receiver_set_str(prepcReceiverData_t *receiverData, prepcReceiverField_t field,
-                                        const char **dst, const char *value, size_t len) {
+static inline void prepc_receiver_set_str(prepcReceiverData_t *receiverData,
+                                          prepcReceiverField_t field, const char **dst,
+                                          const char *value, size_t len) {
     prepc_set_str(&receiverData->fields, receiverData->lengths, field, dst, value, len);
 }
 
 static inline void prepc_sender_set_str(prepcSenderData_t *senderData, prepcSenderField_t field,
-                                      const char **dst, const char *value, size_t len) {
+                                        const char **dst, const char *value, size_t len) {
     prepc_set_str(&senderData->fields, senderData->lengths, field, dst, value, len);
 }
 
 static inline void prepc_set_int(uint32_t *fields, uint8_t *lengths, unsigned field, int64_t *dst,
-                               int64_t value, size_t defLen, bool fixedLen) {
+                                 int64_t value, size_t defLen, bool fixedLen) {
     *fields |= PREPC_FIELD_MASK(field);
     *dst = value;
 
@@ -691,7 +699,7 @@ static inline void prepc_set_int(uint32_t *fields, uint8_t *lengths, unsigned fi
 }
 
 static inline void prepc_set_uint(uint32_t *fields, uint8_t *lengths, unsigned field, uint64_t *dst,
-                                uint64_t value, size_t defLen, bool fixedLen) {
+                                  uint64_t value, size_t defLen, bool fixedLen) {
     *fields |= PREPC_FIELD_MASK(field);
     *dst = value;
 
@@ -708,30 +716,30 @@ static inline void prepc_set_uint(uint32_t *fields, uint8_t *lengths, unsigned f
 }
 
 static inline void prepc_sender_set_uint(prepcSenderData_t *senderData, prepcSenderField_t field,
-                                       uint64_t *dst, uint64_t value, size_t defLen,
-                                       bool fixedLen) {
+                                         uint64_t *dst, uint64_t value, size_t defLen,
+                                         bool fixedLen) {
     prepc_set_uint(&senderData->fields, senderData->lengths, field, dst, value, defLen, fixedLen);
 }
 
 static inline void prepc_sender_set_int(prepcSenderData_t *senderData, prepcSenderField_t field,
-                                      int64_t *dst, int64_t value, size_t defLen, bool fixedLen) {
+                                        int64_t *dst, int64_t value, size_t defLen, bool fixedLen) {
     prepc_set_int(&senderData->fields, senderData->lengths, field, dst, value, defLen, fixedLen);
 }
 
 static inline void prepc_set_bytes(uint32_t *fields, uint8_t *lengths, unsigned field,
-                                 const uint8_t **dst, const uint8_t *value, size_t len) {
+                                   const uint8_t **dst, const uint8_t *value, size_t len) {
     *fields |= PREPC_FIELD_MASK(field);
     *dst = value;
     lengths[field] = (uint8_t)len;
 }
 
 static inline void prepc_sender_set_bytes(prepcSenderData_t *senderData, prepcSenderField_t field,
-                                        const uint8_t **dst, const uint8_t *value, size_t len) {
+                                          const uint8_t **dst, const uint8_t *value, size_t len) {
     prepc_set_bytes(&senderData->fields, senderData->lengths, field, dst, value, len);
 }
 
-prepcError_t prepc_receiver_data_set_callsign(prepcReceiverData_t *receiverData, const char *callsign,
-                                          size_t len) {
+prepcError_t prepc_receiver_data_set_callsign(prepcReceiverData_t *receiverData,
+                                              const char *callsign, size_t len) {
     if (!receiverData || !callsign)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -739,13 +747,13 @@ prepcError_t prepc_receiver_data_set_callsign(prepcReceiverData_t *receiverData,
         return PREPC_ERR_INVALID_ARGS;
 
     prepc_receiver_set_str(receiverData, PREPC_RECEIVER_FIELD_CALLSIGN, &receiverData->callsign,
-                         callsign, len);
+                           callsign, len);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_receiver_data_set_locator(prepcReceiverData_t *receiverData, const char *locator,
-                                         size_t len) {
+                                             size_t len) {
     if (!receiverData || !locator)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -755,14 +763,14 @@ prepcError_t prepc_receiver_data_set_locator(prepcReceiverData_t *receiverData, 
     if (!check_locator(locator, len))
         return PREPC_ERR_INVALID_ARGS;
 
-    prepc_receiver_set_str(receiverData, PREPC_RECEIVER_FIELD_LOCATOR, &receiverData->locator, locator,
-                         len);
+    prepc_receiver_set_str(receiverData, PREPC_RECEIVER_FIELD_LOCATOR, &receiverData->locator,
+                           locator, len);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_receiver_data_set_decoder_software(prepcReceiverData_t *receiverData,
-                                                  const char *decoderSoftware, size_t len) {
+                                                      const char *decoderSoftware, size_t len) {
     if (!receiverData || !decoderSoftware)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -770,27 +778,27 @@ prepcError_t prepc_receiver_data_set_decoder_software(prepcReceiverData_t *recei
         return PREPC_ERR_INVALID_ARGS;
 
     prepc_receiver_set_str(receiverData, PREPC_RECEIVER_FIELD_DECODER_SOFTWARE,
-                         &receiverData->decoderSoftware, decoderSoftware, len);
+                           &receiverData->decoderSoftware, decoderSoftware, len);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_receiver_data_set_antenna_info(prepcReceiverData_t *receiverData,
-                                              const char *antennaInfo, size_t len) {
+                                                  const char *antennaInfo, size_t len) {
     if (!receiverData || !antennaInfo)
         return PREPC_ERR_INVALID_ARGS;
 
     if (len > PREPC_MAX_STR_LEN)
         return PREPC_ERR_INVALID_ARGS;
 
-    prepc_receiver_set_str(receiverData, PREPC_RECEIVER_FIELD_ANTENNA_INFO, &receiverData->antennaInfo,
-                         antennaInfo, len);
+    prepc_receiver_set_str(receiverData, PREPC_RECEIVER_FIELD_ANTENNA_INFO,
+                           &receiverData->antennaInfo, antennaInfo, len);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_receiver_data_set_persistent_id(prepcReceiverData_t *receiverData,
-                                               const char *persistentId, size_t len) {
+                                                   const char *persistentId, size_t len) {
     if (!receiverData || !persistentId)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -798,40 +806,41 @@ prepcError_t prepc_receiver_data_set_persistent_id(prepcReceiverData_t *receiver
         return PREPC_ERR_INVALID_ARGS;
 
     prepc_receiver_set_str(receiverData, PREPC_RECEIVER_FIELD_PERSISTENT_ID,
-                         &receiverData->persistentId, persistentId, len);
+                           &receiverData->persistentId, persistentId, len);
 
     return PREPC_ERR_OK;
 }
 
-prepcError_t prepc_receiver_data_set_rig_info(prepcReceiverData_t *receiverData, const char *rigInfo,
-                                          size_t len) {
+prepcError_t prepc_receiver_data_set_rig_info(prepcReceiverData_t *receiverData,
+                                              const char *rigInfo, size_t len) {
     if (!receiverData || !rigInfo)
         return PREPC_ERR_INVALID_ARGS;
 
     if (len > PREPC_MAX_STR_LEN)
         return PREPC_ERR_INVALID_ARGS;
 
-    prepc_receiver_set_str(receiverData, PREPC_RECEIVER_FIELD_RIG_INFO, &receiverData->rigInfo, rigInfo,
-                         len);
+    prepc_receiver_set_str(receiverData, PREPC_RECEIVER_FIELD_RIG_INFO, &receiverData->rigInfo,
+                           rigInfo, len);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_sender_data_set_callsign(prepcSenderData_t *senderData, const char *callsign,
-                                        size_t len) {
+                                            size_t len) {
     if (!senderData || !callsign)
         return PREPC_ERR_INVALID_ARGS;
 
     if (len > PREPC_MAX_STR_LEN)
         return PREPC_ERR_INVALID_ARGS;
 
-    prepc_sender_set_str(senderData, PREPC_SENDER_FIELD_CALLSIGN, &senderData->callsign, callsign, len);
+    prepc_sender_set_str(senderData, PREPC_SENDER_FIELD_CALLSIGN, &senderData->callsign, callsign,
+                         len);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_sender_data_set_locator(prepcSenderData_t *senderData, const char *locator,
-                                       size_t len) {
+                                           size_t len) {
     if (!senderData || !locator)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -841,7 +850,8 @@ prepcError_t prepc_sender_data_set_locator(prepcSenderData_t *senderData, const 
     if (!check_locator(locator, len))
         return PREPC_ERR_INVALID_ARGS;
 
-    prepc_sender_set_str(senderData, PREPC_SENDER_FIELD_LOCATOR, &senderData->locator, locator, len);
+    prepc_sender_set_str(senderData, PREPC_SENDER_FIELD_LOCATOR, &senderData->locator, locator,
+                         len);
 
     return PREPC_ERR_OK;
 }
@@ -850,8 +860,8 @@ prepcError_t prepc_sender_data_set_frequency(prepcSenderData_t *senderData, uint
     if (!senderData)
         return PREPC_ERR_INVALID_ARGS;
 
-    prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_FREQUENCY, &senderData->frequency, frequency,
-                        4, false);
+    prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_FREQUENCY, &senderData->frequency,
+                          frequency, 4, false);
 
     return PREPC_ERR_OK;
 }
@@ -874,7 +884,8 @@ prepcError_t prepc_sender_data_set_imd(prepcSenderData_t *senderData, int64_t im
     return PREPC_ERR_OK;
 }
 
-prepcError_t prepc_sender_data_set_mode(prepcSenderData_t *senderData, const char *mode, size_t len) {
+prepcError_t prepc_sender_data_set_mode(prepcSenderData_t *senderData, const char *mode,
+                                        size_t len) {
     if (!senderData || !mode)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -887,7 +898,7 @@ prepcError_t prepc_sender_data_set_mode(prepcSenderData_t *senderData, const cha
 }
 
 prepcError_t prepc_sender_data_set_info_src(prepcSenderData_t *senderData, prepcInfoSrc_t infoSrc,
-                                        bool testTransmission) {
+                                            bool testTransmission) {
     if (!senderData)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -895,30 +906,30 @@ prepcError_t prepc_sender_data_set_info_src(prepcSenderData_t *senderData, prepc
     if (testTransmission)
         infoSrcVal |= PREPC_INFO_SRC_TEST_MASK;
 
-    prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_INFO_SRC, &senderData->infoSrc, infoSrcVal, 1,
-                        true);
+    prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_INFO_SRC, &senderData->infoSrc, infoSrcVal,
+                          1, true);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_sender_data_set_flow_start_secs(prepcSenderData_t *senderData,
-                                               uint64_t flowStartSecs) {
+                                                   uint64_t flowStartSecs) {
     if (!senderData)
         return PREPC_ERR_INVALID_ARGS;
 
-    prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_FLOW_START_SECS, &senderData->flowStartSecs,
-                        flowStartSecs, 4, false);
+    prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_FLOW_START_SECS,
+                          &senderData->flowStartSecs, flowStartSecs, 4, false);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_sender_data_set_message_bits(prepcSenderData_t *senderData, const uint8_t *bytes,
-                                            size_t len) {
+                                                size_t len) {
     if (!senderData || !bytes)
         return PREPC_ERR_INVALID_ARGS;
 
-    prepc_sender_set_bytes(senderData, PREPC_SENDER_FIELD_MESSAGE_BITS, &senderData->messageBits, bytes,
-                         len);
+    prepc_sender_set_bytes(senderData, PREPC_SENDER_FIELD_MESSAGE_BITS, &senderData->messageBits,
+                           bytes, len);
 
     return PREPC_ERR_OK;
 }
@@ -931,13 +942,13 @@ prepcError_t prepc_sender_data_set_delta_time(prepcSenderData_t *senderData, int
         return PREPC_ERR_INVALID_ARGS;
 
     prepc_sender_set_int(senderData, PREPC_SENDER_FIELD_DELTA_TIME, &senderData->deltaTime,
-                       (int64_t)deltaTime, 2, true);
+                         (int64_t)deltaTime, 2, true);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_sender_data_set_fractional_frequency_8(prepcSenderData_t *senderData,
-                                                      double fractionalFrequency) {
+                                                          double fractionalFrequency) {
     if (!senderData)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -947,14 +958,14 @@ prepcError_t prepc_sender_data_set_fractional_frequency_8(prepcSenderData_t *sen
     uint8_t fractionalFrequencyVal = (uint8_t)lround(fractionalFrequency * 256.0);
 
     prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY,
-                        &senderData->fractionalFrequency, (uint64_t)fractionalFrequencyVal, 1,
-                        true);
+                          &senderData->fractionalFrequency, (uint64_t)fractionalFrequencyVal, 1,
+                          true);
 
     return PREPC_ERR_OK;
 }
 
 prepcError_t prepc_sender_data_set_fractional_frequency_16(prepcSenderData_t *senderData,
-                                                       double fractionalFrequency) {
+                                                           double fractionalFrequency) {
     if (!senderData)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -964,8 +975,8 @@ prepcError_t prepc_sender_data_set_fractional_frequency_16(prepcSenderData_t *se
     uint16_t fractionalFrequencyVal = (uint16_t)lround(fractionalFrequency * 65536.0);
 
     prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY,
-                        &senderData->fractionalFrequency, (uint64_t)fractionalFrequencyVal, 2,
-                        true);
+                          &senderData->fractionalFrequency, (uint64_t)fractionalFrequencyVal, 2,
+                          true);
 
     return PREPC_ERR_OK;
 }
@@ -981,8 +992,8 @@ prepcError_t prepc_templates_init(prepcTemplates_t *templates) {
     return PREPC_ERR_OK;
 }
 
-prepcError_t prepc_templates_add(prepcTemplates_t *templates, prepcSetType_t setType, const uint8_t *rfdKey,
-                             prepcTemplate_t **outTemplate) {
+prepcError_t prepc_templates_add(prepcTemplates_t *templates, prepcSetType_t setType,
+                                 const uint8_t *rfdKey, prepcTemplate_t **outTemplate) {
     if (!templates || !rfdKey || !outTemplate)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -1022,7 +1033,7 @@ prepcError_t prepc_templates_add(prepcTemplates_t *templates, prepcSetType_t set
 }
 
 prepcError_t prepc_templates_find(prepcTemplates_t *templates, prepcSetType_t setType,
-                              const uint8_t *rfdKey, prepcTemplate_t **outTemplate) {
+                                  const uint8_t *rfdKey, prepcTemplate_t **outTemplate) {
     if (!templates || !rfdKey || !outTemplate)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -1151,7 +1162,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
 
     prepcError_t rc;
     rc = prepc_write_packet_header(&ctx->buf, ctx->buf.len, (uint32_t)currentTime, ctx->sequenceNum,
-                                 ctx->sessionId);
+                                   ctx->sessionId);
     if (rc != PREPC_ERR_OK)
         return rc;
 
@@ -1287,7 +1298,8 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
     if (!ctx || !senderData)
         return PREPC_ERR_INVALID_ARGS;
 
-    if ((senderData->fields & PREPC_SENDER_MANDATORY_FIELDS_MASK) != PREPC_SENDER_MANDATORY_FIELDS_MASK)
+    if ((senderData->fields & PREPC_SENDER_MANDATORY_FIELDS_MASK) !=
+        PREPC_SENDER_MANDATORY_FIELDS_MASK)
         return PREPC_ERR_MISSING_FIELDS;
 
     if (!ctx->currentReceiverData)

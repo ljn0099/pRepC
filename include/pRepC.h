@@ -38,10 +38,11 @@ typedef enum {
     PREPC_SENDER_FIELD_COUNT
 } prepcSenderField_t;
 
-#define PREPC_TEMPLATE_KEY_LEN                                                                       \
-    (sizeof(prepcFields_t) + (((size_t)PREPC_SENDER_FIELD_COUNT > (size_t)PREPC_RECEIVER_FIELD_COUNT)    \
-                                ? (size_t)PREPC_SENDER_FIELD_COUNT                                   \
-                                : (size_t)PREPC_RECEIVER_FIELD_COUNT))
+#define PREPC_TEMPLATE_KEY_LEN                                                                     \
+    (sizeof(prepcFields_t) +                                                                       \
+     (((size_t)PREPC_SENDER_FIELD_COUNT > (size_t)PREPC_RECEIVER_FIELD_COUNT)                      \
+          ? (size_t)PREPC_SENDER_FIELD_COUNT                                                       \
+          : (size_t)PREPC_RECEIVER_FIELD_COUNT))
 
 typedef enum {
     PREPC_INFO_SRC_AUTO = 1,
@@ -154,29 +155,29 @@ prepcError_t prepc_ctx_flush(prepcCtx_t *ctx, uint64_t minIntervalSecs);
 void prepc_ctx_free(prepcCtx_t *ctx);
 
 prepcError_t prepc_receiver_data_set_callsign(prepcReceiverData_t *receiverData,
-                                                        const char *callsign, size_t len);
+                                              const char *callsign, size_t len);
 
 prepcError_t prepc_receiver_data_set_locator(prepcReceiverData_t *receiverData, const char *locator,
-                                         size_t len);
+                                             size_t len);
 
 prepcError_t prepc_receiver_data_set_decoder_software(prepcReceiverData_t *receiverData,
-                                                  const char *decoderSoftware, size_t len);
+                                                      const char *decoderSoftware, size_t len);
 
 prepcError_t prepc_receiver_data_set_antenna_info(prepcReceiverData_t *receiverData,
-                                              const char *antennaInfo, size_t len);
+                                                  const char *antennaInfo, size_t len);
 
 prepcError_t prepc_receiver_data_set_persistent_id(prepcReceiverData_t *receiverData,
-                                               const char *persistentId, size_t len);
+                                                   const char *persistentId, size_t len);
 
-prepcError_t prepc_receiver_data_set_rig_info(prepcReceiverData_t *receiverData, const char *rigInfo,
-                                          size_t len);
+prepcError_t prepc_receiver_data_set_rig_info(prepcReceiverData_t *receiverData,
+                                              const char *rigInfo, size_t len);
 
 // Sender Data
 prepcError_t prepc_sender_data_set_callsign(prepcSenderData_t *senderData, const char *callsign,
-                                        size_t len);
+                                            size_t len);
 
 prepcError_t prepc_sender_data_set_locator(prepcSenderData_t *senderData, const char *locator,
-                                       size_t len);
+                                           size_t len);
 
 prepcError_t prepc_sender_data_set_frequency(prepcSenderData_t *senderData, uint64_t frequency);
 
@@ -184,22 +185,24 @@ prepcError_t prepc_sender_data_set_snr(prepcSenderData_t *senderData, int64_t sn
 
 prepcError_t prepc_sender_data_set_imd(prepcSenderData_t *senderData, int64_t imd);
 
-prepcError_t prepc_sender_data_set_mode(prepcSenderData_t *senderData, const char *mode, size_t len);
+prepcError_t prepc_sender_data_set_mode(prepcSenderData_t *senderData, const char *mode,
+                                        size_t len);
 
 prepcError_t prepc_sender_data_set_info_src(prepcSenderData_t *senderData, prepcInfoSrc_t infoSrc,
-                                        bool testTransmission);
+                                            bool testTransmission);
 
-prepcError_t prepc_sender_data_set_flow_start_secs(prepcSenderData_t *senderData, uint64_t flowStartSecs);
+prepcError_t prepc_sender_data_set_flow_start_secs(prepcSenderData_t *senderData,
+                                                   uint64_t flowStartSecs);
 
 prepcError_t prepc_sender_data_set_message_bits(prepcSenderData_t *senderData, const uint8_t *bytes,
-                                            size_t len);
+                                                size_t len);
 
 prepcError_t prepc_sender_data_set_delta_time(prepcSenderData_t *senderData, int16_t deltaTime);
 
 prepcError_t prepc_sender_data_set_fractional_frequency_8(prepcSenderData_t *senderData,
-                                                      double fractionalFrequency);
+                                                          double fractionalFrequency);
 
 prepcError_t prepc_sender_data_set_fractional_frequency_16(prepcSenderData_t *senderData,
-                                                       double fractionalFrequency);
+                                                           double fractionalFrequency);
 
 #endif
