@@ -1,7 +1,6 @@
 #include "binio.h"
 #include "pRepC.h"
 #include "system/systemHal.h"
-#include "time.h"
 #include "udp/udpHal.h"
 #include <stdint.h>
 #include <stdio.h>
