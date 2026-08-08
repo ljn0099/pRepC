@@ -199,7 +199,7 @@ prepcError_t prepc_sender_data_set_flow_start_secs(prepcSenderData_t *senderData
 prepcError_t prepc_sender_data_set_message_bits(prepcSenderData_t *senderData, const uint8_t *bytes,
                                                 size_t len);
 
-prepcError_t prepc_sender_data_set_delta_time(prepcSenderData_t *senderData, double deltaTime);
+prepcError_t prepc_sender_data_set_delta_time(prepcSenderData_t *senderData, int64_t deltaTimeUs);
 
 prepcError_t prepc_sender_data_set_fractional_frequency_8(prepcSenderData_t *senderData,
                                                           double fractionalFrequency);
