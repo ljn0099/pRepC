@@ -228,8 +228,5 @@ The context functions also leave the context in a consistent state so for exampl
 The library automatically handles the sequence number overflow, DNS changes and templates limitations by resetting the context
 so the server effectively sees it as an other entity.
 
-# Usage example
-
-```C
-
-```
+pRepC currently does not implement the PSKReporter recommendation of limiting how often the same callsign is reported,
+but there are plans do module separated from the core for that.
