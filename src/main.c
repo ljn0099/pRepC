@@ -2,9 +2,11 @@
 #include "pRepC.h"
 #include "system/systemHal.h"
 #include "udp/udpHal.h"
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
 #define PREPC_MAX_STR_LEN 254
 
