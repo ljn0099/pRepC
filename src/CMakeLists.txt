@@ -19,7 +19,6 @@ elseif(UNIX)
     )
 
     set(PLATFORM_LIBS
-        m
     )
 else()
     message(FATAL_ERROR "Unsupported platform")

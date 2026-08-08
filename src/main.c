@@ -983,11 +983,13 @@ prepcError_t prepc_sender_data_set_fractional_frequency_8(prepcSenderData_t *sen
     if (fractionalFrequency < 0.0 || fractionalFrequency >= 1.0)
         return PREPC_ERR_INVALID_ARGS;
 
-    uint8_t fractionalFrequencyVal = (uint8_t)lround(fractionalFrequency * 256.0);
+    uint64_t fractionalFrequencyVal = (uint64_t)(fractionalFrequency * 256.0 + 0.5);
+
+    if (fractionalFrequencyVal > UINT8_MAX)
+        fractionalFrequencyVal = UINT8_MAX;
 
     prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY,
-                          &senderData->fractionalFrequency, (uint64_t)fractionalFrequencyVal, 1,
-                          true);
+                          &senderData->fractionalFrequency, fractionalFrequencyVal, 1, true);
 
     return PREPC_ERR_OK;
 }
@@ -1000,10 +1002,13 @@ prepcError_t prepc_sender_data_set_fractional_frequency_16(prepcSenderData_t *se
     if (fractionalFrequency < 0.0 || fractionalFrequency >= 1.0)
         return PREPC_ERR_INVALID_ARGS;
 
-    uint16_t fractionalFrequencyVal = (uint16_t)lround(fractionalFrequency * 65536.0);
+    uint64_t fractionalFrequencyVal = (uint64_t)(fractionalFrequency * 65536.0 + 0.5);
+
+    if (fractionalFrequencyVal > UINT16_MAX)
+        fractionalFrequencyVal = UINT16_MAX;
 
     prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY,
-                          &senderData->fractionalFrequency, (uint64_t)fractionalFrequencyVal, 2,
+                          &senderData->fractionalFrequency, fractionalFrequencyVal, 2,
                           true);
 
     return PREPC_ERR_OK;
