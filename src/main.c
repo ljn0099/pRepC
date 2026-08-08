@@ -955,15 +955,17 @@ prepcError_t prepc_sender_data_set_message_bits(prepcSenderData_t *senderData, c
     return PREPC_ERR_OK;
 }
 
-prepcError_t prepc_sender_data_set_delta_time(prepcSenderData_t *senderData, int16_t deltaTime) {
+prepcError_t prepc_sender_data_set_delta_time(prepcSenderData_t *senderData, double deltaTime) {
     if (!senderData)
         return PREPC_ERR_INVALID_ARGS;
 
-    if (deltaTime == INT16_MIN)
-        return PREPC_ERR_INVALID_ARGS;
+    if (deltaTime < -3.276 || deltaTime > 3.276)
+        return false;
+
+    int16_t value = (int16_t)lround(deltaTime * 10000.0);
 
     prepc_sender_set_int(senderData, PREPC_SENDER_FIELD_DELTA_TIME, &senderData->deltaTime,
-                         (int64_t)deltaTime, 2, true);
+                         (int64_t)value, 2, true);
 
     return PREPC_ERR_OK;
 }
