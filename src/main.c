@@ -3,8 +3,6 @@
 #include "system/systemHal.h"
 #include "time.h"
 #include "udp/udpHal.h"
-#include <ctype.h>
-#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,9 +96,9 @@ bool check_locator(const char *locator, size_t len) {
         return false;
 
     // 2nd pair: digits 0-9
-    if (!isdigit(locator[2]))
+    if (!(locator[2] >= '0' && locator[2] <= '9'))
         return false;
-    if (!isdigit(locator[3]))
+    if (!(locator[3] >= '0' && locator[3] <= '9'))
         return false;
 
     // Optional 3rd pair
@@ -113,9 +111,9 @@ bool check_locator(const char *locator, size_t len) {
 
     // Optional 4th pair
     if (len == 8) {
-        if (!isdigit(locator[6]))
+        if (!(locator[6] >= '0' && locator[6] <= '9'))
             return false;
-        if (!isdigit(locator[7]))
+        if (!(locator[7] >= '0' && locator[7] <= '9'))
             return false;
     }
 
@@ -1008,8 +1006,7 @@ prepcError_t prepc_sender_data_set_fractional_frequency_16(prepcSenderData_t *se
         fractionalFrequencyVal = UINT16_MAX;
 
     prepc_sender_set_uint(senderData, PREPC_SENDER_FIELD_FRACTIONAL_FREQUENCY,
-                          &senderData->fractionalFrequency, fractionalFrequencyVal, 2,
-                          true);
+                          &senderData->fractionalFrequency, fractionalFrequencyVal, 2, true);
 
     return PREPC_ERR_OK;
 }
