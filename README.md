@@ -6,6 +6,74 @@ It is designed to be small and portable, being suitable for desktop and embedded
 
 It currently supports POSIX and Windows through a small platform abstraction layer (HAL).
 
+# Example
+
+```C
+#include "pRepC.h"
+#include "pRepCModes.h"
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+int main(void) {
+    prepcReceiverData_t receiverData = {0};
+    const char *receiverCallsign = "EA4ZZZ";
+    const char *receiverLocator = "IN80";
+    const char *decoderSoftware = "prepcLibC";
+
+    prepc_receiver_data_set_callsign(&receiverData, receiverCallsign, strlen(receiverCallsign));
+    prepc_receiver_data_set_locator(&receiverData, receiverLocator, strlen(receiverLocator));
+    prepc_receiver_data_set_decoder_software(&receiverData, decoderSoftware, strlen(decoderSoftware));
+
+    prepcSenderData_t senderData = {0};
+    const char *senderCallsign = "EA1ZXZ";
+    const char *senderMode = PREPC_MODE_FT4;
+
+    prepcCtx_t prepcCtx;
+    prepcError_t rc;
+
+    rc = prepc_ctx_init(&prepcCtx, PREPC_DEFAULT_HOST, PREPC_TEST_PORT);
+    if (rc != PREPC_ERR_OK) {
+        printf("Error in prepc_ctx_init, %d\n", rc);
+        return -1;
+    }
+
+    rc = prepc_ctx_set_receiver(&prepcCtx, &receiverData);
+    if (rc != PREPC_ERR_OK) {
+        printf("Error in prepc_ctx_set_receiver, %d\n", rc);
+        prepc_ctx_free(&prepcCtx);
+        return -1;
+    }
+
+    int c;
+    while ((c = getchar()) != EOF) { // Press a key to continue
+        prepc_sender_data_reset(&senderData);
+        prepc_sender_data_set_callsign(&senderData, senderCallsign, strlen(senderCallsign));
+        prepc_sender_data_set_frequency(&senderData, 7145000);
+        prepc_sender_data_set_mode(&senderData, senderMode, strlen(senderMode));
+        prepc_sender_data_set_info_src(&senderData, PREPC_INFO_SRC_MANUAL, true);
+        prepc_sender_data_set_flow_start_secs(&senderData, time(NULL));
+        prepc_sender_data_set_snr(&senderData, -5);
+
+        rc = prepc_ctx_add_sender(&prepcCtx, &senderData);
+        if (rc != PREPC_ERR_OK) { // You can try to call again the function and recover if it returns PREPC_ERR_NETWORK
+            printf("Error in prepc_ctx_add_sender, %d\n", rc);
+            prepc_ctx_free(&prepcCtx);
+            return -1;
+        }
+    }
+
+    rc = prepc_ctx_flush(&prepcCtx, 0, false);
+    if (rc != PREPC_ERR_OK) {
+        printf("Error in prepc_ctx_send_manually, %d\n", rc);
+        prepc_ctx_free(&prepcCtx);
+        return -1;
+    }
+
+    prepc_ctx_free(&prepcCtx);
+}
+```
+
 # Usage
 
 First we need to understand out two main structs: `prepcReceiverData_t` and `prepcSenderData_t`,
@@ -86,8 +154,8 @@ Used to set the time in unix seconds of the transmission.
 Used to set the raw decoded message data.
 
 - `prepcError_t prepc_sender_data_set_delta_time(prepcSenderData_t *senderData, double deltaTime);`
-Used to set the time offset of the message received from the start of the transmission period in seconds,
-as a value in [-3.276, 3.276].
+Used to set the time offset of the message received from the start of the transmission period in uS,
+as a value in [-3276000, 3276000], with 100uS precision.
 
 - `prepcError_t prepc_sender_data_set_fractional_frequency_8(prepcSenderData_t *senderData, double fractionalFrequency);`
 Used to set the fractional part of the audio frequency with 8-bit precision, as a value in [0.0, 1.0).
@@ -108,4 +176,60 @@ After `prepc_ctx_add_sender` returns, the original strings/data can be modified 
 `prepc_ctx_add_sender` does not clear or modify the `prepcSenderData_t` structure itself.
 If you want to reset it, use `prepc_sender_data_reset`.
 
-TODO: Add context functions documentation.
+---
+
+Now let's see how to use the context functions, there are only 5 functions.
+
+The first one is to initialize the context `prepcError_t prepc_ctx_init(prepcCtx_t *ctx, const char *host, const char *port)`,
+here is an example of how to initialize it, simple as that.
+
+```C
+prepcCtx_t ctx;
+
+if (prepc_ctx_init(&ctx, "report.pskreporter.info", "4739") != PREPC_ERR_OK)
+    return -1;
+```
+
+The next thing you would want to do is set a receiver for this context, so you need to generate one that you like as previously seen
+and set it with: `prepcError_t prepc_ctx_set_receiver(prepcCtx_t *ctx, const prepcReceiverData_t *receiverData);`.
+
+The receiver once set will persist during the entire context until you call again the function, you can change the receiver at any
+time you want, if there is data in the transmission buffer it will be sent automatically and the new spots you add will be reported
+with that new receiver.
+
+Then, to add a spot/sender we can use the `prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *senderData);`,
+this function is very easy to use, when the buffers gets full it will automatically send it and set the new spot to a new buffer
+regenerating the receiverData automatically, also you can send senderData with different fields and it the library will manage it
+but it will be less efficient because every time the number of fields change the library needs to send the buffer sending out buffer
+that are partially full. (Remember that this function does NOT clear the data on senderData)
+
+If you don't want to wait for a buffer to get full to send it, or at the end of the program you can use the function
+`prepcError_t prepc_ctx_flush(prepcCtx_t *ctx, uint64_t minIntervalSecs, bool allowReceiverDataOnly);`, if you set the
+minIntervalSecs the transmission will be sent, or you can put any other timeout in seconds, if the last buffer was sent later than
+the specified timeout the buffer will be sent.
+
+The `allowReceiverDataOnly` can be useful if you want to send a package with only the receiver data.
+
+This function doesn't reset the or erase the receiver data that you set so there is NO need to call again `prepc_ctx_set_receiver`.
+
+Finally to free the context you can use `void prepc_ctx_free(prepcCtx_t *ctx);`, but this function does **NOT** send the transmission
+buffer so make sure to call `prepc_ctx_flush` before freeing the context.
+
+## Error handling
+
+As for the setter functions, they can return either `PREPC_ERR_INVALID_ARGS` when you send an invalid pointer/value and will NOT set
+that to the data or it can return `PREPC_ERR_OK` on success.
+
+The context functions also leave the context in a consistent state so for example if the network is unreachable and 
+`prepc_ctx_set_receiver` returns `PREPC_ERR_NETWORK` you can try to call it again later when the network is available again.
+
+# Notes
+
+The library automatically handles the sequence number overflow, DNS changes and templates limitations by resetting the context
+so the server effectively sees it as an other entity.
+
+# Usage example
+
+```C
+
+```
