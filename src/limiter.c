@@ -46,7 +46,7 @@ typedef struct prepcRateEntry_t {
     char callsign[PREPC_RATE_CALLSIGN_MAX_LEN + 1];
     char mode[PREPC_RATE_MODE_MAX_LEN + 1];
     uint64_t lastSent;
-    prepcBand_t band;
+    uint64_t freqHz;
 
     struct prepcRateEntry_t *nextFree;
 
@@ -214,7 +214,7 @@ static prepcRateEntry_t *prepc_rate_find(prepcRateCtx_t *ctx, const char *callsi
 
 static prepcError_t prepc_rate_add(prepcRateCtx_t *ctx, const char *callsign, size_t callsignLen,
                                    const char *mode, size_t modeLen, uint64_t lastSend,
-                                   prepcBand_t band) {
+                                   uint64_t freqHz) {
     if (!ctx || !callsign || !mode)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -233,7 +233,7 @@ static prepcError_t prepc_rate_add(prepcRateCtx_t *ctx, const char *callsign, si
     entry->mode[modeLen] = '\0';
 
     entry->lastSent = lastSend;
-    entry->band = band;
+    entry->freqHz = freqHz;
 
     HASH_ADD(hh, ctx->utTable, callsign, callsignLen, entry);
 
@@ -241,7 +241,7 @@ static prepcError_t prepc_rate_add(prepcRateCtx_t *ctx, const char *callsign, si
 }
 
 static prepcError_t prepc_rate_update(prepcRateEntry_t *entry, const char *mode, size_t modeLen,
-                                      uint64_t lastSent, prepcBand_t band) {
+                                      uint64_t lastSent, uint64_t freqHz) {
     if (!entry)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -254,7 +254,7 @@ static prepcError_t prepc_rate_update(prepcRateEntry_t *entry, const char *mode,
     }
 
     entry->lastSent = lastSent;
-    entry->band = band;
+    entry->freqHz = freqHz;
 
     return PREPC_ERR_OK;
 }
@@ -342,7 +342,6 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
 
     prepcError_t rc;
     prepcRateEntry_t *entry = NULL;
-    prepcBand_t band = prepc_band_classify(freqHz);
 
     uint64_t currentTime;
     if (!hal_system_time_unix_u64(&currentTime))
@@ -358,7 +357,7 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
 
     entry = prepc_rate_find(ctx, callsign, callsignLen);
     if (!entry) {
-        rc = prepc_rate_add(ctx, callsign, callsignLen, mode, modeLen, currentTime, band);
+        rc = prepc_rate_add(ctx, callsign, callsignLen, mode, modeLen, currentTime, freqHz);
         if (rc == PREPC_ERR_OK)
             return PREPC_ERR_OK;
 
@@ -370,27 +369,43 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
         if (rc != PREPC_ERR_OK)
             return rc;
 
-        return prepc_rate_add(ctx, callsign, callsignLen, mode, modeLen, currentTime, band);
+        return prepc_rate_add(ctx, callsign, callsignLen, mode, modeLen, currentTime, freqHz);
     }
 
     // It has been reported recently
     if ((currentTime - entry->lastSent) < PREPC_RATE_MIN_INTERVAL_S)
         return PREPC_ERR_NOT_REPORT;
 
+    prepcBand_t bandNew = prepc_band_classify(freqHz);
+    prepcBand_t bandOld = prepc_band_classify(entry->freqHz);
+
     bool changeDetected = false;
     // Mode has changed
     if (strlen(entry->mode) != modeLen || memcmp(entry->mode, mode, modeLen) != 0)
         changeDetected = true;
     // Band has changed
-    if (entry->band != band && band != PREPC_BAND_INVALID)
+    if (bandOld != bandNew && bandNew != PREPC_BAND_INVALID)
         changeDetected = true;
+    // Unknown band, check frequency difference
+    if (bandOld == PREPC_BAND_UNKNOWN && bandNew == PREPC_BAND_UNKNOWN) {
+        uint64_t diffHz;
+        if (entry->freqHz == freqHz)
+            diffHz = 0;
+        else if (entry->freqHz < freqHz)
+            diffHz = freqHz - entry->freqHz;
+        else
+            diffHz = entry->freqHz - freqHz;
+
+        if (diffHz >= PREPC_RATE_UNKNOWN_FREQ_CHANGE_HZ)
+            changeDetected = true;
+    }
 
     // Data has not changed and we wait
     if ((currentTime - entry->lastSent) < PREPC_RATE_UNCHANGED_INTERVAL_S && !changeDetected)
         return PREPC_ERR_NOT_REPORT;
 
     // Data has changed so report it
-    rc = prepc_rate_update(entry, mode, modeLen, currentTime, band);
+    rc = prepc_rate_update(entry, mode, modeLen, currentTime, freqHz);
     if (rc != PREPC_ERR_OK)
         return rc;
 

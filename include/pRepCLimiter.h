@@ -14,6 +14,8 @@
 #define PREPC_RATE_PURGE_INTERVAL_S (12 * 60 * 60)
 #define PREPC_RATE_MAX_AGE_S (24 * 60 * 60)
 
+#define PREPC_RATE_UNKNOWN_FREQ_CHANGE_HZ 50000
+
 typedef struct prepcRateCtx_t prepcRateCtx_t;
 
 prepcError_t prepc_rate_ctx_init(prepcRateCtx_t **ctx, size_t maxEntries);
