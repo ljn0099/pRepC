@@ -1218,8 +1218,8 @@ prepcError_t prepc_ctx_init(prepcCtx_t **ctxInput, const char *host, const char 
         return rc;
     }
 
-    halUdpErr_t udpErr = hal_udp_init(&ctx->udpCtx, host, port);
-    if (udpErr != HAL_UDP_ERR_OK) {
+    prepcUdpErr_t udpErr = prepc_udp_init(&ctx->udpCtx, host, port);
+    if (udpErr != PREPC_UDP_ERR_OK) {
         free(ctx);
         ctx = NULL;
 
@@ -1240,7 +1240,7 @@ void prepc_ctx_free(prepcCtx_t *ctx) {
     ctx->receiverRfdBuffered = false;
     ctx->senderRfdBuffered = false;
 
-    hal_udp_cleanup(ctx->udpCtx);
+    prepc_udp_cleanup(ctx->udpCtx);
 
     free(ctx);
 }
@@ -1285,7 +1285,7 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
     if (rc != PREPC_ERR_OK)
         return rc;
 
-    if (hal_udp_send(ctx->udpCtx, ctx->buf.data, ctx->buf.len) != HAL_UDP_ERR_OK)
+    if (prepc_udp_send(ctx->udpCtx, ctx->buf.data, ctx->buf.len) != PREPC_UDP_ERR_OK)
         return PREPC_ERR_NETWORK;
     DEBUG_printf("Buffer sent, %zu bytes", ctx->buf.len);
 
@@ -1320,14 +1320,14 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
 
     if ((currentTime - ctx->lastDNSSync) >= PREPC_DNS_TTL_SEC) {
 
-        halUdpErr_t udpErr = hal_udp_reresolve(ctx->udpCtx);
+        prepcUdpErr_t udpErr = prepc_udp_reresolve(ctx->udpCtx);
 
-        if (udpErr != HAL_UDP_ERR_OK && udpErr != HAL_UDP_ERR_OK_HOST_CHANGED)
+        if (udpErr != PREPC_UDP_ERR_OK && udpErr != PREPC_UDP_ERR_OK_HOST_CHANGED)
             return PREPC_ERR_NETWORK;
 
         ctx->lastDNSSync = currentTime;
 
-        if (udpErr == HAL_UDP_ERR_OK_HOST_CHANGED) {
+        if (udpErr == PREPC_UDP_ERR_OK_HOST_CHANGED) {
             // Host has changed
             ctx->sequenceNum = 0;
             ctx->lastPacketSentTime = 0;

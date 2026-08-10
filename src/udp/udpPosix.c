@@ -15,8 +15,8 @@
 typedef struct {
     int sock;
 
-    char host[HOST_MAX_LEN];
-    char port[PORT_MAX_LEN];
+    char host[PREPC_UDP_HOST_MAX_LEN];
+    char port[PREPC_UDP_PORT_MAX_LEN];
 
     struct sockaddr_storage addr;
     socklen_t addrlen;
@@ -47,9 +47,9 @@ static bool sockaddr_equal(const struct sockaddr *a, const struct sockaddr *b) {
     return false;
 }
 
-static halUdpErr_t udp_reopen(connContext_t *ctx) {
+static prepcUdpErr_t udp_reopen(connContext_t *ctx) {
     if (!ctx)
-        return HAL_UDP_ERR_INVALID_ARGUMENT;
+        return PREPC_UDP_ERR_INVALID_ARGUMENT;
 
     struct addrinfo hints = {0};
     hints.ai_family = AF_UNSPEC;
@@ -60,19 +60,19 @@ static halUdpErr_t udp_reopen(connContext_t *ctx) {
     int err = getaddrinfo(ctx->host, ctx->port, &hints, &res);
     if (err != 0) {
         if (err == EAI_AGAIN)
-            return HAL_UDP_ERR_NETWORK;
+            return PREPC_UDP_ERR_NETWORK;
 
         if (err == EAI_NONAME)
-            return HAL_UDP_ERR_RESOLVE;
+            return PREPC_UDP_ERR_RESOLVE;
 
-        return HAL_UDP_ERR_INTERNAL;
+        return PREPC_UDP_ERR_INTERNAL;
     }
 
     if (ctx->addrlen > 0 && ctx->sock >= 0) {
         for (struct addrinfo *p = res; p != NULL; p = p->ai_next) {
             if (sockaddr_equal((struct sockaddr *)&ctx->addr, p->ai_addr)) {
                 freeaddrinfo(res);
-                return HAL_UDP_ERR_OK;
+                return PREPC_UDP_ERR_OK;
             }
         }
     }
@@ -90,34 +90,34 @@ static halUdpErr_t udp_reopen(connContext_t *ctx) {
         ctx->sock = sock;
 
         freeaddrinfo(res);
-        return HAL_UDP_ERR_OK_HOST_CHANGED;
+        return PREPC_UDP_ERR_OK_HOST_CHANGED;
     }
 
     freeaddrinfo(res);
-    return HAL_UDP_ERR_INTERNAL;
+    return PREPC_UDP_ERR_INTERNAL;
 }
 
-halUdpErr_t hal_udp_reresolve(void *context) {
+prepcUdpErr_t prepc_udp_reresolve(void *context) {
     connContext_t *ctx = (connContext_t *)context;
 
     return udp_reopen(ctx);
 }
 
-halUdpErr_t hal_udp_init(void **context, const char *host, const char *port) {
+prepcUdpErr_t prepc_udp_init(void **context, const char *host, const char *port) {
     if (!context || !host || !port)
-        return HAL_UDP_ERR_INVALID_ARGUMENT;
+        return PREPC_UDP_ERR_INVALID_ARGUMENT;
 
     *context = NULL;
 
-    if (strlen(host) >= HOST_MAX_LEN)
-        return HAL_UDP_ERR_INVALID_ARGUMENT;
+    if (strlen(host) >= PREPC_UDP_HOST_MAX_LEN)
+        return PREPC_UDP_ERR_INVALID_ARGUMENT;
 
-    if (strlen(port) >= PORT_MAX_LEN)
-        return HAL_UDP_ERR_INVALID_ARGUMENT;
+    if (strlen(port) >= PREPC_UDP_PORT_MAX_LEN)
+        return PREPC_UDP_ERR_INVALID_ARGUMENT;
 
     connContext_t *ctx = calloc(1, sizeof(connContext_t));
     if (!ctx)
-        return HAL_UDP_ERR_INTERNAL;
+        return PREPC_UDP_ERR_INTERNAL;
 
     strcpy(ctx->host, host);
     strcpy(ctx->port, port);
@@ -125,71 +125,41 @@ halUdpErr_t hal_udp_init(void **context, const char *host, const char *port) {
     ctx->sock = -1;
     ctx->addrlen = 0;
 
-    halUdpErr_t err = udp_reopen(ctx);
-    if (err != HAL_UDP_ERR_OK && err != HAL_UDP_ERR_OK_HOST_CHANGED) {
+    prepcUdpErr_t err = udp_reopen(ctx);
+    if (err != PREPC_UDP_ERR_OK && err != PREPC_UDP_ERR_OK_HOST_CHANGED) {
         free(ctx);
         return err;
     }
 
     *context = ctx;
-    return HAL_UDP_ERR_OK;
+    return PREPC_UDP_ERR_OK;
 }
 
-halUdpErr_t hal_udp_send_vector(void *context, const halUdpBuf_t *buffers, size_t count) {
+prepcUdpErr_t prepc_udp_send(void *context, const uint8_t *data, size_t len) {
     connContext_t *ctx = (connContext_t *)context;
 
-    if (!ctx || !buffers || count == 0 || ctx->sock < 0 || ctx->addrlen == 0)
-        return HAL_UDP_ERR_INVALID_ARGUMENT;
+    if (!ctx || !data || ctx->sock < 0 || ctx->addrlen == 0)
+        return PREPC_UDP_ERR_INVALID_ARGUMENT;
 
-    if (count > HAL_UDP_MAX_BUFFERS)
-        return HAL_UDP_ERR_INVALID_ARGUMENT;
-
-    struct iovec iov[HAL_UDP_MAX_BUFFERS];
-
-    size_t total = 0;
-
-    for (size_t i = 0; i < count; ++i) {
-        if (!buffers[i].data && buffers[i].len != 0)
-            return HAL_UDP_ERR_INVALID_ARGUMENT;
-
-        iov[i].iov_base = (void *)buffers[i].data;
-        iov[i].iov_len = buffers[i].len;
-
-        total += buffers[i].len;
-    }
-
-    struct msghdr msg = {0};
-
-    msg.msg_name = &ctx->addr;
-    msg.msg_namelen = ctx->addrlen;
-    msg.msg_iov = iov;
-    msg.msg_iovlen = count;
-
-    ssize_t sent = sendmsg(ctx->sock, &msg, 0);
+    ssize_t sent = sendto(ctx->sock, data, len, 0, (struct sockaddr *)&ctx->addr, ctx->addrlen);
 
     if (sent < 0) {
         if (errno == ENETUNREACH || errno == EHOSTUNREACH)
-            return HAL_UDP_ERR_NETWORK;
+            return PREPC_UDP_ERR_NETWORK;
 
         if (errno == EMSGSIZE)
-            return HAL_UDP_ERR_INVALID_ARGUMENT;
+            return PREPC_UDP_ERR_INVALID_ARGUMENT;
 
-        return HAL_UDP_ERR_INTERNAL;
+        return PREPC_UDP_ERR_INTERNAL;
     }
 
-    if ((size_t)sent != total)
-        return HAL_UDP_ERR_INTERNAL;
+    if ((size_t)sent != len)
+        return PREPC_UDP_ERR_INTERNAL;
 
-    return HAL_UDP_ERR_OK;
+    return PREPC_UDP_ERR_OK;
 }
 
-halUdpErr_t hal_udp_send(void *context, const uint8_t *data, size_t len) {
-    halUdpBuf_t buf = {.data = data, .len = len};
-
-    return hal_udp_send_vector(context, &buf, 1);
-}
-
-void hal_udp_cleanup(void *context) {
+void prepc_udp_cleanup(void *context) {
     connContext_t *ctx = (connContext_t *)context;
 
     if (!ctx)
