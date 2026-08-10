@@ -9,6 +9,7 @@
 #include <string.h>
 
 typedef enum {
+    PREPC_BAND_INVALID,
     PREPC_BAND_UNKNOWN,
     PREPC_BAND_2200M,
     PREPC_BAND_630M,
@@ -64,6 +65,9 @@ struct prepcRateCtx_t {
 };
 
 prepcBand_t prepc_band_classify(uint64_t freqHz) {
+    if (freqHz == 0)
+        return PREPC_BAND_INVALID;
+
     if (freqHz >= 135700 && freqHz <= 137800)
         return PREPC_BAND_2200M;
 
@@ -378,7 +382,7 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
     if (strlen(entry->mode) != modeLen || memcmp(entry->mode, mode, modeLen) != 0)
         changeDetected = true;
     // Band has changed
-    if (entry->band != band && band != PREPC_BAND_UNKNOWN)
+    if (entry->band != band && band != PREPC_BAND_INVALID)
         changeDetected = true;
 
     // Data has not changed and we wait
