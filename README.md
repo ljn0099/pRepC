@@ -1,6 +1,6 @@
 # pRepC
 
-pRepC is a lightweight C library for sending sports to PSKReporter.
+pRepC is a lightweight C library for sending spots to PSKReporter.
 
 It is designed to be small and portable, being suitable for desktop and embedded systems.
 
