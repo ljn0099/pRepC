@@ -8,7 +8,40 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct prepcRateEntry_t {
+typedef enum {
+    PREPC_BAND_UNKNOWN,
+    PREPC_BAND_2200M,
+    PREPC_BAND_630M,
+    PREPC_BAND_160M,
+    PREPC_BAND_80M,
+    PREPC_BAND_60M,
+    PREPC_BAND_40M,
+    PREPC_BAND_30M,
+    PREPC_BAND_20M,
+    PREPC_BAND_17M,
+    PREPC_BAND_15M,
+    PREPC_BAND_12M,
+    PREPC_BAND_10M,
+    PREPC_BAND_6M,
+    PREPC_BAND_4M,
+    PREPC_BAND_2M,
+    PREPC_BAND_1_25M,
+    PREPC_BAND_70CM,
+    PREPC_BAND_33CM,
+    PREPC_BAND_23CM,
+    PREPC_BAND_13CM,
+    PREPC_BAND_9CM,
+    PREPC_BAND_5CM,
+    PREPC_BAND_3CM,
+    PREPC_BAND_1_2CM,
+    PREPC_BAND_6MM,
+    PREPC_BAND_4MM,
+    PREPC_BAND_2_5MM,
+    PREPC_BAND_2MM,
+    PREPC_BAND_1MM
+} prepcBand_t;
+
+typedef struct prepcRateEntry_t {
     char callsign[PREPC_RATE_CALLSIGN_MAX_LEN + 1];
     char mode[PREPC_RATE_MODE_MAX_LEN + 1];
     uint64_t lastSent;
@@ -17,6 +50,17 @@ struct prepcRateEntry_t {
     struct prepcRateEntry_t *nextFree;
 
     UT_hash_handle hh;
+} prepcRateEntry_t;
+
+struct prepcRateCtx_t {
+    prepcRateEntry_t *utTable;
+
+    prepcRateEntry_t *entries;
+    size_t maxEntries;
+
+    prepcRateEntry_t *freeEntries;
+
+    uint64_t lastPurged;
 };
 
 prepcBand_t prepc_band_classify(uint64_t freqHz) {
@@ -110,9 +154,15 @@ prepcBand_t prepc_band_classify(uint64_t freqHz) {
     return PREPC_BAND_UNKNOWN;
 }
 
-prepcError_t prepc_rate_ctx_init(prepcRateCtx_t *ctx, size_t maxEntries) {
-    if (!ctx || maxEntries == 0)
+prepcError_t prepc_rate_ctx_init(prepcRateCtx_t **ctxInput, size_t maxEntries) {
+    if (!ctxInput || maxEntries == 0)
         return PREPC_ERR_INVALID_ARGS;
+
+    *ctxInput = NULL;
+
+    prepcRateCtx_t *ctx = malloc(sizeof(prepcRateCtx_t));
+    if (!ctx)
+        return PREPC_ERR_MEMORY;
 
     ctx->entries = NULL;
     ctx->freeEntries = NULL;
@@ -121,12 +171,16 @@ prepcError_t prepc_rate_ctx_init(prepcRateCtx_t *ctx, size_t maxEntries) {
     ctx->lastPurged = 0;
 
     uint64_t currentTime;
-    if (!hal_system_time_unix_u64(&currentTime))
+    if (!hal_system_time_unix_u64(&currentTime)) {
+        free(ctx);
         return PREPC_ERR_SYSTEM;
+    }
 
     ctx->entries = calloc(maxEntries, sizeof(*ctx->entries));
-    if (!ctx->entries)
+    if (!ctx->entries) {
+        free(ctx);
         return PREPC_ERR_MEMORY;
+    }
 
     ctx->freeEntries = &ctx->entries[0];
     ctx->maxEntries = maxEntries;
@@ -136,6 +190,8 @@ prepcError_t prepc_rate_ctx_init(prepcRateCtx_t *ctx, size_t maxEntries) {
         ctx->entries[i].nextFree = &ctx->entries[i + 1];
 
     ctx->entries[maxEntries - 1].nextFree = NULL;
+
+    *ctxInput = ctx;
 
     return PREPC_ERR_OK;
 }
