@@ -18,7 +18,7 @@ int main(void) {
     const char *senderCallsign = "EA1ZXZ";
     const char *senderMode = PREPC_MODE_FT4;
 
-    prepcCtx_t prepcCtx;
+    prepcCtx_t *prepcCtx;
     prepcError_t rc;
 
     rc = prepc_ctx_init(&prepcCtx, PREPC_DEFAULT_HOST, PREPC_TEST_PORT);
@@ -27,10 +27,10 @@ int main(void) {
         return -1;
     }
 
-    rc = prepc_ctx_set_receiver(&prepcCtx, &receiverData);
+    rc = prepc_ctx_set_receiver(prepcCtx, &receiverData);
     if (rc != PREPC_ERR_OK) {
         printf("Error in prepc_ctx_set_receiver, %d\n", rc);
-        prepc_ctx_free(&prepcCtx);
+        prepc_ctx_free(prepcCtx);
         return -1;
     }
 
@@ -44,20 +44,20 @@ int main(void) {
         prepc_sender_data_set_flow_start_secs(&senderData, time(NULL));
         prepc_sender_data_set_snr(&senderData, -5);
 
-        rc = prepc_ctx_add_sender(&prepcCtx, &senderData);
+        rc = prepc_ctx_add_sender(prepcCtx, &senderData);
         if (rc != PREPC_ERR_OK) { // You can try to call again the function and recover if it returns PREPC_ERR_NETWORK
             printf("Error in prepc_ctx_add_sender, %d\n", rc);
-            prepc_ctx_free(&prepcCtx);
+            prepc_ctx_free(prepcCtx);
             return -1;
         }
     }
 
-    rc = prepc_ctx_flush(&prepcCtx, 0, false);
+    rc = prepc_ctx_flush(prepcCtx, 0, false);
     if (rc != PREPC_ERR_OK) {
         printf("Error in prepc_ctx_send_manually, %d\n", rc);
-        prepc_ctx_free(&prepcCtx);
+        prepc_ctx_free(prepcCtx);
         return -1;
     }
 
-    prepc_ctx_free(&prepcCtx);
+    prepc_ctx_free(prepcCtx);
 }

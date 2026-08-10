@@ -11,6 +11,9 @@
 
 #define PREPC_PACKET_LEN 1400
 
+#define PREPC_MAX_SENDER_TEMPLATES 15
+#define PREPC_MAX_RECEIVER_TEMPLATES 15
+
 typedef enum {
     PREPC_RECEIVER_FIELD_CALLSIGN = 0,
     PREPC_RECEIVER_FIELD_LOCATOR,
@@ -37,18 +40,6 @@ typedef enum {
 
     PREPC_SENDER_FIELD_COUNT
 } prepcSenderField_t;
-
-#define PREPC_TEMPLATE_KEY_LEN                                                                     \
-    (sizeof(prepcFields_t) +                                                                       \
-     (((size_t)PREPC_SENDER_FIELD_COUNT > (size_t)PREPC_RECEIVER_FIELD_COUNT)                      \
-          ? (size_t)PREPC_SENDER_FIELD_COUNT                                                       \
-          : (size_t)PREPC_RECEIVER_FIELD_COUNT))
-
-typedef enum {
-    PREPC_INFO_SRC_AUTO = 1,
-    PREPC_INFO_SRC_CALL_LOG = 2,
-    PREPC_INFO_SRC_MANUAL = 3,
-} prepcInfoSrc_t;
 
 typedef uint32_t prepcFields_t;
 
@@ -81,54 +72,13 @@ typedef struct {
     uint64_t fractionalFrequency;
 } prepcSenderData_t;
 
-typedef struct {
-    uint8_t key[PREPC_TEMPLATE_KEY_LEN];
-    uint16_t templateId;
-    uint8_t startupCount;
-    uint64_t lastSent;
-} prepcTemplate_t;
+typedef enum {
+    PREPC_INFO_SRC_AUTO = 1,
+    PREPC_INFO_SRC_CALL_LOG = 2,
+    PREPC_INFO_SRC_MANUAL = 3,
+} prepcInfoSrc_t;
 
-#define PREPC_MAX_SENDER_TEMPLATES 15
-#define PREPC_MAX_RECEIVER_TEMPLATES 15
-
-typedef struct {
-    prepcTemplate_t receiverTemplate[PREPC_MAX_RECEIVER_TEMPLATES];
-    size_t receiverTemplateCount;
-    size_t receiverTemplateMax;
-
-    prepcTemplate_t senderTemplate[PREPC_MAX_SENDER_TEMPLATES];
-    size_t senderTemplateCount;
-    size_t senderTemplateMax;
-
-    uint16_t nextTemplateId;
-} prepcTemplates_t;
-
-typedef struct {
-    uint8_t data[PREPC_PACKET_LEN];
-    size_t len;
-    size_t maxLen;
-} prepcBuf_t;
-
-typedef struct {
-    uint32_t sequenceNum;
-    uint32_t sessionId;
-
-    prepcTemplate_t *activeReceiverTemplate;
-    prepcTemplate_t *activeSenderTemplate;
-    bool receiverRfdBuffered;
-    bool senderRfdBuffered;
-
-    prepcBuf_t buf;
-    prepcTemplates_t templates;
-
-    const prepcReceiverData_t *currentReceiverData;
-
-    uint64_t lastDNSSync;
-
-    uint64_t lastPacketSentTime;
-
-    void *udpCtx;
-} prepcCtx_t;
+typedef struct prepcCtx_t prepcCtx_t;
 
 typedef enum {
     PREPC_ERR_OK = 0,
@@ -146,7 +96,7 @@ typedef enum {
     PREPC_ERR_MISSING_FIELDS
 } prepcError_t;
 
-prepcError_t prepc_ctx_init(prepcCtx_t *ctx, const char *host, const char *port);
+prepcError_t prepc_ctx_init(prepcCtx_t **ctx, const char *host, const char *port);
 
 prepcError_t prepc_ctx_set_receiver(prepcCtx_t *ctx, const prepcReceiverData_t *receiverData);
 

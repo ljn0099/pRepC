@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define PREPC_MAX_STR_LEN 254
@@ -46,6 +47,58 @@
     (PREPC_FIELD_MASK(PREPC_SENDER_FIELD_CALLSIGN) | PREPC_FIELD_MASK(PREPC_SENDER_FIELD_MODE) |   \
      PREPC_FIELD_MASK(PREPC_SENDER_FIELD_INFO_SRC) |                                               \
      PREPC_FIELD_MASK(PREPC_SENDER_FIELD_FLOW_START_SECS))
+
+#define PREPC_TEMPLATE_KEY_LEN                                                                     \
+    (sizeof(prepcFields_t) +                                                                       \
+     (((size_t)PREPC_SENDER_FIELD_COUNT > (size_t)PREPC_RECEIVER_FIELD_COUNT)                      \
+          ? (size_t)PREPC_SENDER_FIELD_COUNT                                                       \
+          : (size_t)PREPC_RECEIVER_FIELD_COUNT))
+
+typedef struct {
+    uint8_t key[PREPC_TEMPLATE_KEY_LEN];
+    uint16_t templateId;
+    uint8_t startupCount;
+    uint64_t lastSent;
+} prepcTemplate_t;
+
+typedef struct {
+    prepcTemplate_t receiverTemplate[PREPC_MAX_RECEIVER_TEMPLATES];
+    size_t receiverTemplateCount;
+    size_t receiverTemplateMax;
+
+    prepcTemplate_t senderTemplate[PREPC_MAX_SENDER_TEMPLATES];
+    size_t senderTemplateCount;
+    size_t senderTemplateMax;
+
+    uint16_t nextTemplateId;
+} prepcTemplates_t;
+
+typedef struct {
+    uint8_t data[PREPC_PACKET_LEN];
+    size_t len;
+    size_t maxLen;
+} prepcBuf_t;
+
+struct prepcCtx_t {
+    uint32_t sequenceNum;
+    uint32_t sessionId;
+
+    prepcTemplate_t *activeReceiverTemplate;
+    prepcTemplate_t *activeSenderTemplate;
+    bool receiverRfdBuffered;
+    bool senderRfdBuffered;
+
+    prepcBuf_t buf;
+    prepcTemplates_t templates;
+
+    const prepcReceiverData_t *currentReceiverData;
+
+    uint64_t lastDNSSync;
+
+    uint64_t lastPacketSentTime;
+
+    void *udpCtx;
+};
 
 static const uint16_t receiverFieldIds[PREPC_RECEIVER_FIELD_COUNT] = {
     [PREPC_RECEIVER_FIELD_CALLSIGN] = 0x8002,         [PREPC_RECEIVER_FIELD_LOCATOR] = 0x8004,
@@ -1122,10 +1175,23 @@ void prepc_templates_soft_reset(prepcTemplates_t *templates) {
     }
 }
 
-prepcError_t prepc_ctx_init(prepcCtx_t *ctx, const char *host, const char *port) {
+prepcError_t prepc_ctx_init(prepcCtx_t **ctxInput, const char *host, const char *port) {
+    if (!ctxInput || !host || !port)
+        return PREPC_ERR_INVALID_ARGS;
+
+    *ctxInput = NULL;
+
+    prepcCtx_t *ctx = malloc(sizeof(prepcCtx_t));
+    if (!ctx)
+        return PREPC_ERR_MEMORY;
+
     ctx->sequenceNum = 0;
-    if (!hal_system_random_u32(&ctx->sessionId))
+    if (!hal_system_random_u32(&ctx->sessionId)) {
+        free(ctx);
+        ctx = NULL;
+
         return PREPC_ERR_SYSTEM;
+    }
     ctx->activeSenderTemplate = NULL;
     ctx->activeReceiverTemplate = NULL;
     ctx->currentReceiverData = NULL;
@@ -1134,20 +1200,33 @@ prepcError_t prepc_ctx_init(prepcCtx_t *ctx, const char *host, const char *port)
     ctx->lastDNSSync = 0;
     ctx->lastPacketSentTime = 0;
 
-    halUdpErr_t udpErr = hal_udp_init(&ctx->udpCtx, host, port);
-    if (udpErr != HAL_UDP_ERR_OK)
-        return PREPC_ERR_NETWORK;
-
     prepcError_t rc;
 
     rc = prepc_buf_init(&ctx->buf);
-    if (rc != PREPC_ERR_OK)
+    if (rc != PREPC_ERR_OK) {
+        free(ctx);
+        ctx = NULL;
+
         return rc;
+    }
 
     rc = prepc_templates_init(&ctx->templates);
     if (rc != PREPC_ERR_OK) {
+        free(ctx);
+        ctx = NULL;
+
         return rc;
     }
+
+    halUdpErr_t udpErr = hal_udp_init(&ctx->udpCtx, host, port);
+    if (udpErr != HAL_UDP_ERR_OK) {
+        free(ctx);
+        ctx = NULL;
+
+        return PREPC_ERR_NETWORK;
+    }
+
+    *ctxInput = ctx;
 
     return PREPC_ERR_OK;
 }
@@ -1162,6 +1241,8 @@ void prepc_ctx_free(prepcCtx_t *ctx) {
     ctx->senderRfdBuffered = false;
 
     hal_udp_cleanup(ctx->udpCtx);
+
+    free(ctx);
 }
 
 prepcError_t prepc_ctx_reset(prepcCtx_t *ctx) {
