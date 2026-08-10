@@ -65,7 +65,7 @@ int main(void) {
         prepc_sender_data_set_callsign(&senderData, callsign, strlen(callsign));
         prepc_sender_data_set_frequency(&senderData, freqHz);
         prepc_sender_data_set_mode(&senderData, mode, strlen(mode));
-        prepc_sender_data_set_info_src(&senderData, PREPC_INFO_SRC_AUTO, true);
+        prepc_sender_data_set_info_src(&senderData, PREPC_INFO_SRC_AUTO, false);
         prepc_sender_data_set_flow_start_secs(&senderData, flowStartSecs);
 
         rc = prepc_ctx_add_sender(prepcCtx, &senderData);
