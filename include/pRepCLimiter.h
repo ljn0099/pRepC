@@ -23,6 +23,7 @@ prepcError_t prepc_rate_ctx_init(prepcRateCtx_t **ctx, size_t maxEntries);
 void prepc_rate_free(prepcRateCtx_t *ctx);
 
 prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign, size_t callsignLen,
-                                      const char *mode, size_t modeLen, uint64_t freqHz);
+                                      const char *mode, size_t modeLen, uint64_t freqHz,
+                                      uint64_t flowStartSecs);
 
 #endif

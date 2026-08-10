@@ -45,7 +45,7 @@ typedef enum {
 typedef struct prepcRateEntry_t {
     char callsign[PREPC_RATE_CALLSIGN_MAX_LEN + 1];
     char mode[PREPC_RATE_MODE_MAX_LEN + 1];
-    uint64_t lastSent;
+    uint64_t lastReportSecs;
     uint64_t freqHz;
 
     struct prepcRateEntry_t *nextFree;
@@ -232,7 +232,7 @@ static prepcError_t prepc_rate_add(prepcRateCtx_t *ctx, const char *callsign, si
     memcpy(entry->mode, mode, modeLen);
     entry->mode[modeLen] = '\0';
 
-    entry->lastSent = lastSend;
+    entry->lastReportSecs = lastSend;
     entry->freqHz = freqHz;
 
     HASH_ADD(hh, ctx->utTable, callsign, callsignLen, entry);
@@ -241,7 +241,7 @@ static prepcError_t prepc_rate_add(prepcRateCtx_t *ctx, const char *callsign, si
 }
 
 static prepcError_t prepc_rate_update(prepcRateEntry_t *entry, const char *mode, size_t modeLen,
-                                      uint64_t lastSent, uint64_t freqHz) {
+                                      uint64_t lastReportSecs, uint64_t freqHz) {
     if (!entry)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -253,7 +253,7 @@ static prepcError_t prepc_rate_update(prepcRateEntry_t *entry, const char *mode,
         entry->mode[modeLen] = '\0';
     }
 
-    entry->lastSent = lastSent;
+    entry->lastReportSecs = lastReportSecs;
     entry->freqHz = freqHz;
 
     return PREPC_ERR_OK;
@@ -301,7 +301,7 @@ static prepcError_t prepc_rate_delete_oldest(prepcRateCtx_t *ctx) {
     prepcRateEntry_t *candidate = NULL;
 
     HASH_ITER(hh, ctx->utTable, entry, tmp) {
-        if (!candidate || entry->lastSent < candidate->lastSent)
+        if (!candidate || entry->lastReportSecs < candidate->lastReportSecs)
             candidate = entry;
     }
 
@@ -322,7 +322,7 @@ static prepcError_t prepc_rate_purge(prepcRateCtx_t *ctx, uint64_t currentTime,
     prepcRateEntry_t *tmp;
 
     HASH_ITER(hh, ctx->utTable, entry, tmp) {
-        if ((currentTime - entry->lastSent) >= timeoutSec)
+        if ((currentTime - entry->lastReportSecs) >= timeoutSec)
             prepc_rate_delete(ctx, entry);
     }
 
@@ -330,7 +330,8 @@ static prepcError_t prepc_rate_purge(prepcRateCtx_t *ctx, uint64_t currentTime,
 }
 
 prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign, size_t callsignLen,
-                                      const char *mode, size_t modeLen, uint64_t freqHz) {
+                                      const char *mode, size_t modeLen, uint64_t freqHz,
+                                      uint64_t flowStartSecs) {
     if (!ctx || !callsign || !mode)
         return PREPC_ERR_INVALID_ARGS;
 
@@ -347,6 +348,9 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
     if (!hal_system_time_unix_u64(&currentTime))
         return PREPC_ERR_SYSTEM;
 
+    if (flowStartSecs > currentTime)
+        return PREPC_ERR_INVALID_ARGS;
+
     if ((currentTime - ctx->lastPurged) >= PREPC_RATE_PURGE_INTERVAL_S) {
         rc = prepc_rate_purge(ctx, currentTime, PREPC_RATE_MAX_AGE_S);
         if (rc != PREPC_ERR_OK)
@@ -357,7 +361,7 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
 
     entry = prepc_rate_find(ctx, callsign, callsignLen);
     if (!entry) {
-        rc = prepc_rate_add(ctx, callsign, callsignLen, mode, modeLen, currentTime, freqHz);
+        rc = prepc_rate_add(ctx, callsign, callsignLen, mode, modeLen, flowStartSecs, freqHz);
         if (rc == PREPC_ERR_OK)
             return PREPC_ERR_OK;
 
@@ -369,11 +373,14 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
         if (rc != PREPC_ERR_OK)
             return rc;
 
-        return prepc_rate_add(ctx, callsign, callsignLen, mode, modeLen, currentTime, freqHz);
+        return prepc_rate_add(ctx, callsign, callsignLen, mode, modeLen, flowStartSecs, freqHz);
     }
 
+    if (entry->lastReportSecs > flowStartSecs)
+        return PREPC_ERR_NOT_REPORT;
+
     // It has been reported recently
-    if ((currentTime - entry->lastSent) < PREPC_RATE_MIN_INTERVAL_S)
+    if ((flowStartSecs - entry->lastReportSecs) < PREPC_RATE_MIN_INTERVAL_S)
         return PREPC_ERR_NOT_REPORT;
 
     prepcBand_t bandNew = prepc_band_classify(freqHz);
@@ -401,11 +408,11 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
     }
 
     // Data has not changed and we wait
-    if ((currentTime - entry->lastSent) < PREPC_RATE_UNCHANGED_INTERVAL_S && !changeDetected)
+    if ((flowStartSecs - entry->lastReportSecs) < PREPC_RATE_UNCHANGED_INTERVAL_S && !changeDetected)
         return PREPC_ERR_NOT_REPORT;
 
     // Data has changed so report it
-    rc = prepc_rate_update(entry, mode, modeLen, currentTime, freqHz);
+    rc = prepc_rate_update(entry, mode, modeLen, flowStartSecs, freqHz);
     if (rc != PREPC_ERR_OK)
         return rc;
 
