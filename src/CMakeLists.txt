@@ -1,5 +1,6 @@
 add_library(pRepC STATIC
     main.c
+    limiter.c
 )
 
 if(WIN32)
@@ -29,6 +30,7 @@ target_include_directories(pRepC
         ${PROJECT_SOURCE_DIR}/include
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${PROJECT_SOURCE_DIR}/external/uthash/include
 )
 
 target_link_libraries(pRepC

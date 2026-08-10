@@ -1,3 +1,6 @@
 [submodule "external/binio"]
 	path = external/binio
 	url = https://github.com/ljn0099/binio.git
+[submodule "external/uthash"]
+	path = external/uthash
+	url = https://github.com/troydhanson/uthash.git
