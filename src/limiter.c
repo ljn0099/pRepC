@@ -175,7 +175,7 @@ prepcError_t prepc_rate_ctx_init(prepcRateCtx_t **ctxInput, size_t maxEntries) {
     ctx->lastPurged = 0;
 
     uint64_t currentTime;
-    if (!hal_system_time_unix_u64(&currentTime)) {
+    if (!prepc_system_time_unix_u64(&currentTime)) {
         free(ctx);
         return PREPC_ERR_SYSTEM;
     }
@@ -347,7 +347,7 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
     prepcRateEntry_t *entry = NULL;
 
     uint64_t currentTime;
-    if (!hal_system_time_unix_u64(&currentTime))
+    if (!prepc_system_time_unix_u64(&currentTime))
         return PREPC_ERR_SYSTEM;
 
     if (flowStartSecs > currentTime)

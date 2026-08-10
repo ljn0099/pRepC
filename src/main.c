@@ -1186,7 +1186,7 @@ prepcError_t prepc_ctx_init(prepcCtx_t **ctxInput, const char *host, const char 
         return PREPC_ERR_MEMORY;
 
     ctx->sequenceNum = 0;
-    if (!hal_system_random_u32(&ctx->sessionId)) {
+    if (!prepc_system_random_u32(&ctx->sessionId)) {
         free(ctx);
         ctx = NULL;
 
@@ -1249,7 +1249,7 @@ prepcError_t prepc_ctx_reset(prepcCtx_t *ctx) {
     if (!ctx)
         return PREPC_ERR_INVALID_ARGS;
 
-    if (!hal_system_random_u32(&ctx->sessionId))
+    if (!prepc_system_random_u32(&ctx->sessionId))
         return PREPC_ERR_SYSTEM;
 
     ctx->sequenceNum = 0;
@@ -1273,10 +1273,10 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
         return PREPC_ERR_OK;
 
     uint64_t currentTime;
-    if (!hal_system_time_unix_u64(&currentTime))
+    if (!prepc_system_time_unix_u64(&currentTime))
         return PREPC_ERR_SYSTEM;
     uint32_t randomId;
-    if (!hal_system_random_u32(&randomId))
+    if (!prepc_system_random_u32(&randomId))
         return PREPC_ERR_SYSTEM;
 
     prepcError_t rc;
@@ -1361,7 +1361,7 @@ prepcError_t prepc_ctx_set_receiver(prepcCtx_t *ctx, const prepcReceiverData_t *
     }
 
     uint64_t currentTime;
-    if (!hal_system_time_unix_u64(&currentTime))
+    if (!prepc_system_time_unix_u64(&currentTime))
         return PREPC_ERR_SYSTEM;
 
     rc = prepc_write_packet_header(&ctx->buf, 0, 0, 0, 0);
@@ -1433,7 +1433,7 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
         return PREPC_ERR_INVALID_STATE;
 
     uint64_t currentTime;
-    if (!hal_system_time_unix_u64(&currentTime))
+    if (!prepc_system_time_unix_u64(&currentTime))
         return PREPC_ERR_SYSTEM;
 
     prepcError_t rc;
@@ -1518,7 +1518,7 @@ prepcError_t prepc_ctx_flush(prepcCtx_t *ctx, uint64_t minIntervalSecs,
         return PREPC_ERR_INVALID_STATE;
 
     uint64_t currentTime;
-    if (!hal_system_time_unix_u64(&currentTime))
+    if (!prepc_system_time_unix_u64(&currentTime))
         return PREPC_ERR_SYSTEM;
 
     if ((currentTime - ctx->lastPacketSentTime) >= minIntervalSecs) {

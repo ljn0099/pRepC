@@ -8,7 +8,7 @@
 #define WINDOWS_TICK 10000000ULL
 #define SEC_TO_UNIX_EPOCH 11644473600ULL
 
-bool hal_system_time_unix_u64(uint64_t *time) {
+bool prepc_system_time_unix_u64(uint64_t *time) {
     if (time == NULL)
         return false;
 
@@ -25,20 +25,20 @@ bool hal_system_time_unix_u64(uint64_t *time) {
     return true;
 }
 
-bool hal_system_time_unix_u32(uint32_t *time) {
+bool prepc_system_time_unix_u32(uint32_t *time) {
     uint64_t unixTime;
 
     if (time == NULL)
         return false;
 
-    if (!hal_system_time_unix_u64(&unixTime))
+    if (!prepc_system_time_unix_u64(&unixTime))
         return false;
 
     *time = (uint32_t)unixTime;
     return true;
 }
 
-bool hal_system_random_u32(uint32_t *value) {
+bool prepc_system_random_u32(uint32_t *value) {
     if (value == NULL)
         return false;
 
