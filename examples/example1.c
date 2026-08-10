@@ -1,9 +1,9 @@
 #include "pRepC.h"
 #include "pRepCLimiter.h"
 #include "pRepCModes.h"
+#include "pRepCSystem.h"
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 int main(void) {
     prepcReceiverData_t receiverData = {0};
@@ -36,6 +36,7 @@ int main(void) {
     if (rc != PREPC_ERR_OK) {
         printf("Error in prepc_ctx_set_receiver, %d\n", rc);
         prepc_ctx_free(prepcCtx);
+        prepc_rate_free(prepcRateCtx);
         return -1;
     }
 
@@ -43,12 +44,19 @@ int main(void) {
     const char *callsign = "EA1ZXZ";
     const char *mode = PREPC_MODE_FT4;
     uint64_t freqHz = 7145000;
-    uint64_t flowStartSecs = (uint64_t)time(NULL);
+    uint64_t flowStartSecs;
+
+    if (!prepc_system_time_unix_u64(&flowStartSecs)) {
+        printf("Error in prepc_system_time_unix_u64, %d\n", rc);
+        prepc_ctx_free(prepcCtx);
+        prepc_rate_free(prepcRateCtx);
+        return -1;
+    }
 
     int c;
     while ((c = getchar()) != EOF) { // Press a key to continue
-        rc = prepc_rate_should_report(prepcRateCtx, callsign, strlen(callsign), mode,
-                                      strlen(mode), freqHz, flowStartSecs);
+        rc = prepc_rate_should_report(prepcRateCtx, callsign, strlen(callsign), mode, strlen(mode),
+                                      freqHz, flowStartSecs);
 
         if (rc == PREPC_ERR_NOT_REPORT) {
             printf("Spot not reported\n");

@@ -1,6 +1,6 @@
 #include "pRepC.h"
 #include "pRepCLimiter.h"
-#include "system/systemHal.h"
+#include "pRepCSystem.h"
 #include "uthash.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -410,7 +410,8 @@ prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
     }
 
     // Data has not changed and we wait
-    if ((flowStartSecs - entry->lastReportSecs) < PREPC_RATE_UNCHANGED_INTERVAL_S && !changeDetected)
+    if ((flowStartSecs - entry->lastReportSecs) < PREPC_RATE_UNCHANGED_INTERVAL_S &&
+        !changeDetected)
         return PREPC_ERR_NOT_REPORT;
 
     // Data has changed so report it

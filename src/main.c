@@ -1,6 +1,6 @@
 #include "binio.h"
 #include "pRepC.h"
-#include "system/systemHal.h"
+#include "pRepCSystem.h"
 #include "udp/udpHal.h"
 #include <stdbool.h>
 #include <stddef.h>
