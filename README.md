@@ -159,10 +159,48 @@ that to the data or it can return `PREPC_ERR_OK` on success.
 The context functions also leave the context in a consistent state so for example if the network is unreachable and 
 `prepc_ctx_set_receiver` returns `PREPC_ERR_NETWORK` you can try to call it again later when the network is available again.
 
+# Rate Limit Module
+
+As the Pskreporter documentation <https://pskreporter.info/pskdev.html> says:
+> Note that each callsign should be reported no more than once per five minute period.
+
+> Ideally, a callsign should be reported only once per hour if it has not 'changed'.
+> Precisely what constitutes a change is left to the discretion of the developer,
+> but the goal is to minimize the number of database records! A change might be a move to a different band. 
+
+So this module does exactly that, its usage is very simple,
+initialize the module with `prepcError_t prepc_rate_ctx_init(prepcRateCtx_t **ctx, size_t maxEntries);`:
+```C
+prepcRateCtx_t *ctx;
+
+if (prepc_rate_ctx_init(&ctx, 512) != PREPC_ERR_OK)
+    return -1;
+```
+
+And the main function is `prepcError_t prepc_rate_should_report(prepcRateCtx_t *ctx, const char *callsign,
+                          size_t callsignLen, const char *mode, size_t modeLen, uint64_t freqHz, uint64_t flowStartSecs);`
+
+The return will be `PREPC_ERR_OK` indicating that the spot should be reported, `PREPC_ERR_NOT_REPORT` indicating that the
+spot should not be reported, or other error code indicating an internal error.
+
+The frequency is optional and can be set as 0 if unknown but it is highly desirable.
+
+I have defined a change as a change in the MODE Ex: FT8 -> JT9, or a change in the band Ex: 20M Band -> 40M Band, if the frequency
+is initially unknown (0) and it changes to be known that will be counted as a change and if the frequency cannot be classified into
+a band a change will be defined by a frequency difference of more than 5 KHz between the spots, Ex: 6.000 MHz -> 6.005 MHz.
+
+The rule of that each callsign should be reported no more than once per five minute period, takes precedence over the second rule.
+
+Spots that were last reported more than 24 hours ago will be automatically purged from the history.
+
+And finally if the history gets full (depth defined by `maxEntries`) the entry with the oldest latest report will be deleted from
+the history.
+
+Internally it uses a hash table with uthash so the accesses should be O(1) on average.
+
+Finally to free the context you can use `void prepc_rate_free(prepcRateCtx_t *ctx);`.
+
 # Notes
 
 The library automatically handles the sequence number overflow, DNS changes and templates limitations by resetting the context
 so the server effectively sees it as an other entity.
-
-pRepC currently does not implement the PSKReporter recommendation of limiting how often the same callsign is reported,
-but there are plans do module separated from the core for that.

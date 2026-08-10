@@ -290,6 +290,8 @@ void prepc_rate_free(prepcRateCtx_t *ctx) {
     ctx->utTable = NULL;
     ctx->maxEntries = 0;
     ctx->lastPurged = 0;
+
+    free(ctx);
 }
 
 static prepcError_t prepc_rate_delete_oldest(prepcRateCtx_t *ctx) {
