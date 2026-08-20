@@ -1289,7 +1289,6 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
         return PREPC_ERR_NETWORK;
     DEBUG_printf("Buffer sent, %zu bytes", ctx->buf.len);
 
-    ctx->sequenceNum++;
     ctx->lastPacketSentTime = currentTime;
 
     if (ctx->receiverRfdBuffered && ctx->activeReceiverTemplate) {
@@ -1309,14 +1308,6 @@ prepcError_t prepc_ctx_send_manually(prepcCtx_t *ctx) {
     ctx->activeSenderTemplate = NULL;
 
     prepc_buf_reset(&ctx->buf);
-
-    if (ctx->sequenceNum == UINT32_MAX) {
-        ctx->sequenceNum = 0;
-        ctx->lastPacketSentTime = 0;
-        ctx->sessionId = randomId;
-        prepc_templates_soft_reset(&ctx->templates);
-        DEBUG_printf("SequenceNum overflow detected, reseting context");
-    }
 
     if ((currentTime - ctx->lastDNSSync) >= PREPC_DNS_TTL_SEC) {
 
@@ -1477,6 +1468,10 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
 
     if (ctx->activeSenderTemplate && ctx->activeSenderTemplate == foundTemplate) {
         rc = prepc_append_sender_data(&ctx->buf, senderData, foundTemplate->templateId);
+
+        if (rc == PREPC_ERR_OK)
+            ctx->sequenceNum++;
+
         if (rc != PREPC_ERR_BUF_TOO_SMALL)
             return rc;
     }
@@ -1504,6 +1499,7 @@ prepcError_t prepc_ctx_add_sender(prepcCtx_t *ctx, const prepcSenderData_t *send
         return rc;
     }
 
+    ctx->sequenceNum++;
     ctx->activeSenderTemplate = foundTemplate;
 
     return PREPC_ERR_OK;
